@@ -1,10 +1,9 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
-import 'dart:typed_data';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:typed_data';
+
 import '../model/match_record.dart';
 
 class InputPage extends StatefulWidget {
@@ -37,22 +36,16 @@ class _InputPageState extends State<InputPage> {
   final eventCtrl = TextEditingController();
 
   String usedLrig = "";
-
   DateTime date = DateTime.now();
   String format = "A";
 
   List<MatchInput> matches = [MatchInput()];
-
   String? imagePath;
 
-  /// Hiveボックス
   late Box lrigBox;
-
-  /// 使用回数カウント（メモリ）
   final Map<String, int> lrigCount = {};
 
-  /// ルリグ一覧
-    final List<String> lrigList = [
+  final List<String> lrigList = [
 //白ルリグ
   "タマ","タウィル","サシェ","リメンバ","ドーナ",
   "アキノ","LION","ノヴァ","ゆかゆか","ガブリエラ",
@@ -87,174 +80,37 @@ class _InputPageState extends State<InputPage> {
     initLrigBox();
   }
 
-  /// Hive初期化＆読み込み
   Future<void> initLrigBox() async {
     lrigBox = await Hive.openBox('lrigUsage');
-
     for (var key in lrigBox.keys) {
       lrigCount[key] = lrigBox.get(key);
     }
-
     setState(() {});
   }
 
-  /// ひらがな→カタカナ変換
-  String normalize(String input) {
-    return input.split('').map((c) {
-      final code = c.codeUnitAt(0);
-      if (code >= 0x3041 && code <= 0x3096) {
-        return String.fromCharCode(code + 0x60);
-      }
-      return c;
-    }).join();
-  }
-
-  /// ラベル
-  Widget label(String t) => Padding(
-        padding: const EdgeInsets.only(top: 10),
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: Text(t, style: const TextStyle(fontWeight: FontWeight.bold)),
-        ),
-      );
-
-  /// 検索付き選択ダイアログ
-Future<String?> selectLrig(BuildContext context) async {
-  String search = "";
-
-  return showDialog<String>(
-    context: context,
-    builder: (context) {
-      return StatefulBuilder(
-        builder: (context, setState) {
-
-          /// ★ 毎回Hiveから最新を読み込み
-          lrigCount.clear();
-          for (var key in lrigBox.keys) {
-            lrigCount[key] = lrigBox.get(key);
-          }
-
-          final normalizedSearch = normalize(search);
-
-          /// =========================
-          /// ★ ここが今回のメイン処理
-          /// =========================
-
-          // よく使うルリグ（使用回数 > 0）
-          final frequent = lrigList
-              .where((e) => (lrigCount[e] ?? 0) > 0)
-              .toList()
-            ..sort((a, b) =>
-                (lrigCount[b] ?? 0).compareTo(lrigCount[a] ?? 0));
-
-          // 未使用ルリグ（元の順番そのまま）
-          final others = lrigList
-              .where((e) => (lrigCount[e] ?? 0) == 0)
-              .toList();
-
-          // 合体（上に頻出、下に通常順）
-          final merged = [...frequent, ...others];
-
-          // 検索フィルタ
-          final filtered = merged.where((e) {
-            return normalize(e).contains(normalizedSearch);
-          }).toList();
-
-          /// ★ 最多使用ルリグ（ヘッダー用）
-          final mostUsed = frequent.isNotEmpty ? frequent.first : "";
-
-          return AlertDialog(
-            title: const Text("ルリグ選択"),
-            content: SizedBox(
-              width: double.maxFinite,
-              height: 350,
-              child: Column(
-                children: [
-                  TextField(
-                    decoration: const InputDecoration(
-                      hintText: "検索（ひらがなOK）",
-                      prefixIcon: Icon(Icons.search),
-                    ),
-                    onChanged: (v) {
-                      setState(() {
-                        search = v;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 10),
-
-                  /// ★ よく使うルリグ（検索してない時だけ表示）
-                  if (search.isEmpty && mostUsed.isNotEmpty) ...[
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        "よく使うルリグ",
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    ListTile(
-                      tileColor: Colors.amber.withOpacity(0.3),
-                      title: Text(mostUsed),
-                      trailing: Text("★${lrigCount[mostUsed]}"),
-                      onTap: () {
-                        Navigator.pop(context, mostUsed);
-                      },
-                    ),
-                    const Divider(),
-                  ],
-
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: filtered.length,
-                      itemBuilder: (context, index) {
-                        final item = filtered[index];
-                        return ListTile(
-                          title: Text(item),
-                          trailing: (lrigCount[item] ?? 0) > 0
-                              ? Text("★${lrigCount[item]}")
-                              : null,
-                          onTap: () {
-                            Navigator.pop(context, item);
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
-    },
-  );
-}
-
-  /// 画像選択
+  /// 🔥 Firebase対応画像アップロード
   Future<void> pickImage() async {
     final picker = ImagePicker();
     final file = await picker.pickImage(source: ImageSource.gallery);
 
     if (file == null) return;
 
-    final bytes = await file.readAsBytes(); // Web対応
+    final bytes = await file.readAsBytes();
     final name = DateTime.now().millisecondsSinceEpoch.toString();
 
     final ref = FirebaseStorage.instance
-      .ref()
-      .child('images/$name.jpg');
+        .ref()
+        .child('images/$name.jpg');
 
-  await ref.putData(bytes);
+    await ref.putData(bytes);
 
-  final url = await ref.getDownloadURL();
+    final url = await ref.getDownloadURL();
 
     setState(() {
-      imagePath = url;
+      imagePath = url; // URL保存
     });
   }
 
-  /// 保存
   void save() {
     final box = Hive.box<MatchRecord>('records');
 
@@ -274,19 +130,19 @@ Future<String?> selectLrig(BuildContext context) async {
           selfLb: m.selfLb,
           opponentLb: m.opponentLb,
           memo: m.memoCtrl.text,
-          imagePath: imagePath,
+          imagePath: imagePath, // URL保存
         ),
       );
     }
 
-    // ★ 試合数分カウント
-if (usedLrig.isNotEmpty) {
-  final addCount = matches.length;
-  final newCount = (lrigCount[usedLrig] ?? 0) + addCount;
+    if (usedLrig.isNotEmpty) {
+      final addCount = matches.length;
+      final newCount = (lrigCount[usedLrig] ?? 0) + addCount;
 
-  lrigCount[usedLrig] = newCount;
-  lrigBox.put(usedLrig, newCount);
-}
+      lrigCount[usedLrig] = newCount;
+      lrigBox.put(usedLrig, newCount);
+    }
+
     setState(() {
       eventCtrl.clear();
       usedLrig = "";
@@ -302,6 +158,37 @@ if (usedLrig.isNotEmpty) {
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("保存しました")),
+    );
+  }
+
+  Widget label(String t) => Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Text(t, style: const TextStyle(fontWeight: FontWeight.bold)),
+        ),
+      );
+
+  Future<String?> selectLrig(BuildContext context) async {
+    return showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("ルリグ選択"),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: 300,
+            child: ListView(
+              children: lrigList.map((e) {
+                return ListTile(
+                  title: Text(e),
+                  onTap: () => Navigator.pop(context, e),
+                );
+              }).toList(),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -321,12 +208,17 @@ if (usedLrig.isNotEmpty) {
       child: Column(
         children: [
           label("デッキレシピ"),
+
           ElevatedButton(
             onPressed: pickImage,
             child: const Text("画像を選択"),
           ),
-          if (imagePath != null && File(imagePath!).existsSync())
-            Image.network(File(imagePath!), height: 120),
+
+          if (imagePath != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Image.network(imagePath!, height: 120),
+            ),
 
           label("大会名"),
           TextField(controller: eventCtrl),
@@ -412,7 +304,8 @@ if (usedLrig.isNotEmpty) {
                           .map((e) => DropdownMenuItem(
                               value: e, child: Text(e)))
                           .toList(),
-                      onChanged: (v) => setState(() => m.firstSecond = v!),
+                      onChanged: (v) =>
+                          setState(() => m.firstSecond = v!),
                     ),
 
                     label("勝敗"),
@@ -423,7 +316,8 @@ if (usedLrig.isNotEmpty) {
                           .map((e) => DropdownMenuItem(
                               value: e, child: Text(e)))
                           .toList(),
-                      onChanged: (v) => setState(() => m.result = v!),
+                      onChanged: (v) =>
+                          setState(() => m.result = v!),
                     ),
 
                     label("LB数:自/被"),
@@ -437,7 +331,8 @@ if (usedLrig.isNotEmpty) {
                                 10,
                                 (i) => DropdownMenuItem(
                                     value: i, child: Text("$i"))),
-                            onChanged: (v) => setState(() => m.selfLb = v!),
+                            onChanged: (v) =>
+                                setState(() => m.selfLb = v!),
                           ),
                         ),
                         const Text("-"),
@@ -449,8 +344,8 @@ if (usedLrig.isNotEmpty) {
                                 10,
                                 (i) => DropdownMenuItem(
                                     value: i, child: Text("$i"))),
-                            onChanged:
-                                (v) => setState(() => m.opponentLb = v!),
+                            onChanged: (v) =>
+                                setState(() => m.opponentLb = v!),
                           ),
                         ),
                       ],

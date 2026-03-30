@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
-
+import 'dart:typed_data';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../model/match_record.dart';
 
 class InputPage extends StatefulWidget {
@@ -237,13 +238,19 @@ Future<String?> selectLrig(BuildContext context) async {
 
     if (file == null) return;
 
-    final dir = await getApplicationDocumentsDirectory();
+    final bytes = await file.readAsBytes(); // Web対応
     final name = DateTime.now().millisecondsSinceEpoch.toString();
 
-    final saved = await File(file.path).copy('${dir.path}/$name.jpg');
+    final ref = FirebaseStorage.instance
+      .ref()
+      .child('images/$name.jpg');
+
+  await ref.putData(bytes);
+
+  final url = await ref.getDownloadURL();
 
     setState(() {
-      imagePath = saved.path;
+      imagePath = url;
     });
   }
 
@@ -319,7 +326,7 @@ if (usedLrig.isNotEmpty) {
             child: const Text("画像を選択"),
           ),
           if (imagePath != null && File(imagePath!).existsSync())
-            Image.file(File(imagePath!), height: 120),
+            Image.network(File(imagePath!), height: 120),
 
           label("大会名"),
           TextField(controller: eventCtrl),

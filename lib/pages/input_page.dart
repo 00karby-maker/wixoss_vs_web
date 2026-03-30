@@ -14,7 +14,6 @@ class InputPage extends StatefulWidget {
 }
 
 class MatchInput {
-  late TextEditingController opponentCtrl;
   String opponentLrig = "";
   String firstSecond = "先手";
   String result = "勝";
@@ -22,23 +21,21 @@ class MatchInput {
   int opponentLb = 0;
   String memo = "";
 
-  // メモ用コントローラ
   late TextEditingController memoCtrl;
 
   MatchInput() {
-    opponentCtrl = TextEditingController();
     memoCtrl = TextEditingController(text: memo);
   }
 
   void dispose() {
-    opponentCtrl.dispose();
     memoCtrl.dispose();
   }
 }
 
 class _InputPageState extends State<InputPage> {
   final eventCtrl = TextEditingController();
-  final usedCtrl = TextEditingController();
+
+  String usedLrig = "";
 
   DateTime date = DateTime.now();
   String format = "A";
@@ -46,6 +43,70 @@ class _InputPageState extends State<InputPage> {
   List<MatchInput> matches = [MatchInput()];
 
   String? imagePath;
+
+  /// Hiveボックス
+  late Box lrigBox;
+
+  /// 使用回数カウント（メモリ）
+  final Map<String, int> lrigCount = {};
+
+  /// ルリグ一覧
+    final List<String> lrigList = [
+//白ルリグ
+  "タマ","タウィル","サシェ","リメンバ","ドーナ",
+  "アキノ","LION","ノヴァ","ゆかゆか","ガブリエラ",
+  "るう子","ゆきめ","エマ","にじさんじ","リゼ",
+  "アンジュ","アズサ","サオリ","ネージュ",
+//赤ルリグ
+  "花代","ユヅキ","赤タマ","ララ・ルー","リル",
+  "カーニバル","レイラ","LOV","ヒラナ","LOVIT",
+  "エクス","アザエラ","ちより","ジール",
+//青ルリグ
+  "ピルルク","エルドラ","ミルルン","ソウイ","あや",
+  "青リメンバ","青タマ","青ウムル","レイ","タマゴ",
+  "マドカ","みこみこ","ミカエラ","あきら","ネル",
+  "ミヤコ","リップル",
+//緑ルリグ
+  "緑子","アン","アイヤイ","メル","ママ",
+  "緑ユヅキ","緑ピルルク","アト","WOLF","バン",
+  "サンガ","緑カーニバル","ひとえ","ホシノ","シロコ",
+  "ユカリ","ミーティア",
+//黒ルリグ
+  "ウリス","イオナ","ウムル","ミュウ","ハナレ",
+  "アルフォウ","ナナシ","グズ子","黒カーニバル","ムジカ",
+  "デウス","マキナ","まほまほ","黒タマ","ヤミノ",
+  "ヒナ","シュン","とこ","ヴィオラ",
+//無色ルリグ
+  "夢限"
+];
+
+  @override
+  void initState() {
+    super.initState();
+    initLrigBox();
+  }
+
+  /// Hive初期化＆読み込み
+  Future<void> initLrigBox() async {
+    lrigBox = await Hive.openBox('lrigUsage');
+
+    for (var key in lrigBox.keys) {
+      lrigCount[key] = lrigBox.get(key);
+    }
+
+    setState(() {});
+  }
+
+  /// ひらがな→カタカナ変換
+  String normalize(String input) {
+    return input.split('').map((c) {
+      final code = c.codeUnitAt(0);
+      if (code >= 0x3041 && code <= 0x3096) {
+        return String.fromCharCode(code + 0x60);
+      }
+      return c;
+    }).join();
+  }
 
   /// ラベル
   Widget label(String t) => Padding(
@@ -55,6 +116,119 @@ class _InputPageState extends State<InputPage> {
           child: Text(t, style: const TextStyle(fontWeight: FontWeight.bold)),
         ),
       );
+
+  /// 検索付き選択ダイアログ
+Future<String?> selectLrig(BuildContext context) async {
+  String search = "";
+
+  return showDialog<String>(
+    context: context,
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+
+          /// ★ 毎回Hiveから最新を読み込み
+          lrigCount.clear();
+          for (var key in lrigBox.keys) {
+            lrigCount[key] = lrigBox.get(key);
+          }
+
+          final normalizedSearch = normalize(search);
+
+          /// =========================
+          /// ★ ここが今回のメイン処理
+          /// =========================
+
+          // よく使うルリグ（使用回数 > 0）
+          final frequent = lrigList
+              .where((e) => (lrigCount[e] ?? 0) > 0)
+              .toList()
+            ..sort((a, b) =>
+                (lrigCount[b] ?? 0).compareTo(lrigCount[a] ?? 0));
+
+          // 未使用ルリグ（元の順番そのまま）
+          final others = lrigList
+              .where((e) => (lrigCount[e] ?? 0) == 0)
+              .toList();
+
+          // 合体（上に頻出、下に通常順）
+          final merged = [...frequent, ...others];
+
+          // 検索フィルタ
+          final filtered = merged.where((e) {
+            return normalize(e).contains(normalizedSearch);
+          }).toList();
+
+          /// ★ 最多使用ルリグ（ヘッダー用）
+          final mostUsed = frequent.isNotEmpty ? frequent.first : "";
+
+          return AlertDialog(
+            title: const Text("ルリグ選択"),
+            content: SizedBox(
+              width: double.maxFinite,
+              height: 350,
+              child: Column(
+                children: [
+                  TextField(
+                    decoration: const InputDecoration(
+                      hintText: "検索（ひらがなOK）",
+                      prefixIcon: Icon(Icons.search),
+                    ),
+                    onChanged: (v) {
+                      setState(() {
+                        search = v;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 10),
+
+                  /// ★ よく使うルリグ（検索してない時だけ表示）
+                  if (search.isEmpty && mostUsed.isNotEmpty) ...[
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        "よく使うルリグ",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    ListTile(
+                      tileColor: Colors.amber.withOpacity(0.3),
+                      title: Text(mostUsed),
+                      trailing: Text("★${lrigCount[mostUsed]}"),
+                      onTap: () {
+                        Navigator.pop(context, mostUsed);
+                      },
+                    ),
+                    const Divider(),
+                  ],
+
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: filtered.length,
+                      itemBuilder: (context, index) {
+                        final item = filtered[index];
+                        return ListTile(
+                          title: Text(item),
+                          trailing: (lrigCount[item] ?? 0) > 0
+                              ? Text("★${lrigCount[item]}")
+                              : null,
+                          onTap: () {
+                            Navigator.pop(context, item);
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    },
+  );
+}
 
   /// 画像選択
   Future<void> pickImage() async {
@@ -85,9 +259,9 @@ class _InputPageState extends State<InputPage> {
           eventName: eventCtrl.text,
           date: date,
           format: format,
-          usedLrig: usedCtrl.text,
+          usedLrig: usedLrig,
           round: i + 1,
-          opponentLrig: m.opponentCtrl.text,
+          opponentLrig: m.opponentLrig,
           firstSecond: m.firstSecond,
           result: m.result,
           selfLb: m.selfLb,
@@ -98,30 +272,35 @@ class _InputPageState extends State<InputPage> {
       );
     }
 
-    /// 🔥 完全リセット
-setState(() {
-  eventCtrl.clear();
-  usedCtrl.clear();
-  imagePath = null;
-  date = DateTime.now();
-  format = "A";
+    // ★ 試合数分カウント
+if (usedLrig.isNotEmpty) {
+  final addCount = matches.length;
+  final newCount = (lrigCount[usedLrig] ?? 0) + addCount;
 
-  // 古いコントローラを破棄して、新しい対戦1件に置き換え
-  for (var m in matches) {
-    m.dispose();
-  }
-  matches = [MatchInput()]; // 対戦数は1件にリセット
-});
+  lrigCount[usedLrig] = newCount;
+  lrigBox.put(usedLrig, newCount);
+}
+    setState(() {
+      eventCtrl.clear();
+      usedLrig = "";
+      imagePath = null;
+      date = DateTime.now();
+      format = "A";
 
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text("保存しました")),
+      for (var m in matches) {
+        m.dispose();
+      }
+      matches = [MatchInput()];
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("保存しました")),
     );
   }
 
   @override
   void dispose() {
     eventCtrl.dispose();
-    usedCtrl.dispose();
     for (var m in matches) {
       m.dispose();
     }
@@ -134,14 +313,13 @@ setState(() {
       padding: const EdgeInsets.all(12),
       child: Column(
         children: [
-          /// 画像
           label("デッキレシピ"),
           ElevatedButton(
             onPressed: pickImage,
             child: const Text("画像を選択"),
           ),
           if (imagePath != null && File(imagePath!).existsSync())
-              Image.file(File(imagePath!), height: 120),
+            Image.file(File(imagePath!), height: 120),
 
           label("大会名"),
           TextField(controller: eventCtrl),
@@ -168,7 +346,18 @@ setState(() {
           ),
 
           label("使用ルリグ"),
-          TextField(controller: usedCtrl),
+          ListTile(
+            title: Text(usedLrig.isEmpty ? "選択してください" : usedLrig),
+            trailing: const Icon(Icons.arrow_drop_down),
+            onTap: () async {
+              final selected = await selectLrig(context);
+              if (selected != null) {
+                setState(() {
+                  usedLrig = selected;
+                });
+              }
+            },
+          ),
 
           label("フォーマット"),
           DropdownButton(
@@ -182,7 +371,6 @@ setState(() {
 
           const SizedBox(height: 10),
 
-          /// 対戦入力
           ...List.generate(matches.length, (i) {
             final m = matches[i];
 
@@ -194,8 +382,19 @@ setState(() {
                     label("対戦 ${i + 1}"),
 
                     label("対面ルリグ"),
-                    TextField(
-                      controller: m.opponentCtrl, // ← ここでコントローラを使用
+                    ListTile(
+                      title: Text(m.opponentLrig.isEmpty
+                          ? "選択してください"
+                          : m.opponentLrig),
+                      trailing: const Icon(Icons.arrow_drop_down),
+                      onTap: () async {
+                        final selected = await selectLrig(context);
+                        if (selected != null) {
+                          setState(() {
+                            m.opponentLrig = selected;
+                          });
+                        }
+                      },
                     ),
 
                     label("先後"),
@@ -203,8 +402,8 @@ setState(() {
                       value: m.firstSecond,
                       isExpanded: true,
                       items: ["先手", "後手"]
-                          .map((e) =>
-                              DropdownMenuItem(value: e, child: Text(e)))
+                          .map((e) => DropdownMenuItem(
+                              value: e, child: Text(e)))
                           .toList(),
                       onChanged: (v) => setState(() => m.firstSecond = v!),
                     ),
@@ -214,8 +413,8 @@ setState(() {
                       value: m.result,
                       isExpanded: true,
                       items: ["勝", "負"]
-                          .map((e) =>
-                              DropdownMenuItem(value: e, child: Text(e)))
+                          .map((e) => DropdownMenuItem(
+                              value: e, child: Text(e)))
                           .toList(),
                       onChanged: (v) => setState(() => m.result = v!),
                     ),
@@ -229,8 +428,8 @@ setState(() {
                             isExpanded: true,
                             items: List.generate(
                                 10,
-                                (i) =>
-                                    DropdownMenuItem(value: i, child: Text("$i"))),
+                                (i) => DropdownMenuItem(
+                                    value: i, child: Text("$i"))),
                             onChanged: (v) => setState(() => m.selfLb = v!),
                           ),
                         ),
@@ -241,9 +440,10 @@ setState(() {
                             isExpanded: true,
                             items: List.generate(
                                 10,
-                                (i) =>
-                                    DropdownMenuItem(value: i, child: Text("$i"))),
-                            onChanged: (v) => setState(() => m.opponentLb = v!),
+                                (i) => DropdownMenuItem(
+                                    value: i, child: Text("$i"))),
+                            onChanged:
+                                (v) => setState(() => m.opponentLb = v!),
                           ),
                         ),
                       ],

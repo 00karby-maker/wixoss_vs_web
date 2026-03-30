@@ -15,6 +15,7 @@ dependencies:
   animations: ^2.0.8
   image_picker: ^1.0.7
   path_provider: ^2.1.2
+  provider: ^6.0.5
 
 dev_dependencies:
   hive_generator: ^2.0.1

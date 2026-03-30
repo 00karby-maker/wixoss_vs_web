@@ -1,8 +1,9 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:typed_data';
+
 import '../model/match_record.dart';
 
 class EditPage extends StatefulWidget {
@@ -29,43 +30,42 @@ class _EditPageState extends State<EditPage> {
   String usedLrig = "";
   String opponentLrig = "";
 
-  /// Hiveボックス
   late Box lrigBox;
   final Map<String, int> lrigCount = {};
 
-  /// ルリグ一覧
-    final List<String> lrigList = [
-// 白ルリグ
+  final List<String> lrigList = [
+//白ルリグ
   "タマ","タウィル","サシェ","リメンバ","ドーナ",
   "アキノ","LION","ノヴァ","ゆかゆか","ガブリエラ",
   "るう子","ゆきめ","エマ","にじさんじ","リゼ",
   "アンジュ","アズサ","サオリ","ネージュ",
-// 赤ルリグ
+//赤ルリグ
   "花代","ユヅキ","赤タマ","ララ・ルー","リル",
   "カーニバル","レイラ","LOV","ヒラナ","LOVIT",
   "エクス","アザエラ","ちより","ジール",
-// 青ルリグ
+//青ルリグ
   "ピルルク","エルドラ","ミルルン","ソウイ","あや",
   "青リメンバ","青タマ","青ウムル","レイ","タマゴ",
   "マドカ","みこみこ","ミカエラ","あきら","ネル",
   "ミヤコ","リップル",
-// 緑ルリグ
+//緑ルリグ
   "緑子","アン","アイヤイ","メル","ママ",
   "緑ユヅキ","緑ピルルク","アト","WOLF","バン",
   "サンガ","緑カーニバル","ひとえ","ホシノ","シロコ",
   "ユカリ","ミーティア",
-// 黒ルリグ
+//黒ルリグ
   "ウリス","イオナ","ウムル","ミュウ","ハナレ",
   "アルフォウ","ナナシ","グズ子","黒カーニバル","ムジカ",
   "デウス","マキナ","まほまほ","黒タマ","ヤミノ",
   "ヒナ","シュン","とこ","ヴィオラ",
-// 無ルリグ
+//無色ルリグ
   "夢限"
 ];
 
   @override
   void initState() {
     super.initState();
+
     eventCtrl = TextEditingController(text: widget.record.eventName);
     memoCtrl = TextEditingController(text: widget.record.memo);
 
@@ -76,7 +76,8 @@ class _EditPageState extends State<EditPage> {
     format = widget.record.format;
     round = widget.record.round;
     date = widget.record.date;
-    imagePath = widget.record.imagePath;
+
+    imagePath = widget.record.imagePath; // URL
     usedLrig = widget.record.usedLrig;
     opponentLrig = widget.record.opponentLrig;
 
@@ -91,99 +92,23 @@ class _EditPageState extends State<EditPage> {
     setState(() {});
   }
 
-  String normalize(String input) {
-    return input.split('').map((c) {
-      final code = c.codeUnitAt(0);
-      if (code >= 0x3041 && code <= 0x3096) {
-        return String.fromCharCode(code + 0x60);
-      }
-      return c;
-    }).join();
-  }
-
-  Future<String?> selectLrig(BuildContext context) async {
-    String search = "";
-
-    return showDialog<String>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(builder: (context, setState) {
-          final normalizedSearch = normalize(search);
-          final sorted = [...lrigList];
-          sorted.sort((a, b) {
-            final countA = lrigCount[a] ?? 0;
-            final countB = lrigCount[b] ?? 0;
-            return countB.compareTo(countA);
-          });
-          final filtered = sorted.where((e) => normalize(e).contains(normalizedSearch)).toList();
-
-          final mostUsed = sorted.firstWhere(
-            (e) => (lrigCount[e] ?? 0) > 0,
-            orElse: () => "",
-          );
-
-          return AlertDialog(
-            title: const Text("ルリグ選択"),
-            content: SizedBox(
-              width: double.maxFinite,
-              height: 350,
-              child: Column(
-                children: [
-                  TextField(
-                    decoration: const InputDecoration(
-                      hintText: "検索（ひらがなOK）",
-                      prefixIcon: Icon(Icons.search),
-                    ),
-                    onChanged: (v) {
-                      setState(() => search = v);
-                    },
-                  ),
-                  const SizedBox(height: 10),
-                  if (search.isEmpty && mostUsed.isNotEmpty) ...[
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text("よく使うルリグ", style: TextStyle(fontWeight: FontWeight.bold)),
-                    ),
-                    const SizedBox(height: 5),
-                    ListTile(
-                      tileColor: Colors.amber.withOpacity(0.3),
-                      title: Text(mostUsed),
-                      trailing: Text("★${lrigCount[mostUsed]}"),
-                      onTap: () => Navigator.pop(context, mostUsed),
-                    ),
-                    const Divider(),
-                  ],
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: filtered.length,
-                      itemBuilder: (context, index) {
-                        final item = filtered[index];
-                        return ListTile(
-                          title: Text(item),
-                          trailing: (lrigCount[item] ?? 0) > 0 ? Text("★${lrigCount[item]}") : null,
-                          onTap: () => Navigator.pop(context, item),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        });
-      },
-    );
-  }
-
+  /// 🔥 Firebase対応画像アップロード
   Future<void> pickImage() async {
     final picker = ImagePicker();
     final file = await picker.pickImage(source: ImageSource.gallery);
     if (file == null) return;
-    final dir = await getApplicationDocumentsDirectory();
+
+    final bytes = await file.readAsBytes(); // Web対応
     final name = DateTime.now().millisecondsSinceEpoch.toString();
-    final saved = await File(file.path).copy('${dir.path}/$name.jpg');
+
+    final ref = FirebaseStorage.instance.ref().child('images/$name.jpg');
+
+    await ref.putData(bytes);
+
+    final url = await ref.getDownloadURL();
+
     setState(() {
-      imagePath = saved.path;
+      imagePath = url; // URL保存
     });
   }
 
@@ -201,6 +126,7 @@ class _EditPageState extends State<EditPage> {
       ..date = date
       ..round = round
       ..imagePath = imagePath;
+
     widget.record.save();
     Navigator.pop(context);
   }
@@ -212,6 +138,36 @@ class _EditPageState extends State<EditPage> {
           child: Text(t, style: const TextStyle(fontWeight: FontWeight.bold)),
         ),
       );
+
+  Future<String?> selectLrig(BuildContext context) async {
+    return showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("ルリグ選択"),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: 300,
+            child: ListView(
+              children: lrigList.map((e) {
+                return ListTile(
+                  title: Text(e),
+                  onTap: () => Navigator.pop(context, e),
+                );
+              }).toList(),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    eventCtrl.dispose();
+    memoCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -237,8 +193,8 @@ class _EditPageState extends State<EditPage> {
               },
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-                decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(4)),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(border: Border.all()),
                 child: Text("${date.year}/${date.month}/${date.day}"),
               ),
             ),
@@ -253,22 +209,6 @@ class _EditPageState extends State<EditPage> {
               },
             ),
 
-            label("フォーマット"),
-            DropdownButton(
-              value: format,
-              isExpanded: true,
-              items: ['A', 'K', 'D'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-              onChanged: (v) => setState(() => format = v!),
-            ),
-
-            label("●回戦"),
-            DropdownButton(
-              value: round,
-              isExpanded: true,
-              items: List.generate(10, (i) => DropdownMenuItem(value: i + 1, child: Text("${i + 1}回戦"))),
-              onChanged: (v) => setState(() => round = v!),
-            ),
-
             label("対面ルリグ"),
             ListTile(
               title: Text(opponentLrig.isEmpty ? "選択してください" : opponentLrig),
@@ -279,63 +219,28 @@ class _EditPageState extends State<EditPage> {
               },
             ),
 
-            label("先後・勝敗・LB数"),
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButton(
-                    value: firstSecond,
-                    isExpanded: true,
-                    items: ["先手", "後手"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                    onChanged: (v) => setState(() => firstSecond = v!),
-                  ),
-                ),
-                Expanded(
-                  child: DropdownButton(
-                    value: result,
-                    isExpanded: true,
-                    items: ["勝", "負"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                    onChanged: (v) => setState(() => result = v!),
-                  ),
-                ),
-                Expanded(
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButton(
-                          value: selfLb,
-                          isExpanded: true,
-                          items: List.generate(10, (i) => DropdownMenuItem(value: i, child: Text("$i"))),
-                          onChanged: (v) => setState(() => selfLb = v!),
-                        ),
-                      ),
-                      const Text("-"),
-                      Expanded(
-                        child: DropdownButton(
-                          value: oppLb,
-                          isExpanded: true,
-                          items: List.generate(10, (i) => DropdownMenuItem(value: i, child: Text("$i"))),
-                          onChanged: (v) => setState(() => oppLb = v!),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-
             label("メモ"),
             TextField(controller: memoCtrl, maxLines: null),
 
             const SizedBox(height: 10),
+
+            /// 🔥 画像
             ElevatedButton(
               onPressed: pickImage,
               child: const Text("デッキレシピ"),
             ),
-            if (imagePath != null && File(imagePath!).existsSync()) Image.file(File(imagePath!), height: 120),
+
+            if (imagePath != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Image.network(imagePath!, height: 120),
+              ),
 
             const SizedBox(height: 20),
-            ElevatedButton(onPressed: save, child: const Text("保存")),
+            ElevatedButton(
+              onPressed: save,
+              child: const Text("保存"),
+            ),
           ],
         ),
       ),

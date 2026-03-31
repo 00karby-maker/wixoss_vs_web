@@ -98,7 +98,7 @@ class _HistoryPageState extends State<HistoryPage> {
                               CrossAxisAlignment.start,
                           children: [
                             Text("大会名: ${r.eventName}"),
-                            Text("回戦: ${r.round}"),
+                            Text("${r.round}回戦"),
 
                             /// 画像表示
                             if (r.imagePath != null)

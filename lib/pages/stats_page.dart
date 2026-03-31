@@ -216,7 +216,7 @@ Widget buildPieInteractive(String title, Map<String, int> data) {
                             );
                           }),
                           sectionsSpace: 2,
-                          startDegreeOffset: -90,
+                          startDegreeOffset: -90, // 右上からスタート
                           centerSpaceRadius: 0,
                           pieTouchData: PieTouchData(
                             touchCallback: (event, pieTouchResponse) {

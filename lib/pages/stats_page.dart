@@ -173,12 +173,15 @@ final Map<String, Color> lrigColors = {
   }
 
   //円グラフ
+// 円グラフ（インタラクティブ）
 Widget buildPieInteractive(String title, Map<String, int> data) {
   final total = data.values.fold<int>(0, (a, b) => a + b);
 
-  // 右上から％が高い順に並べ替え
+  // 右上から％順に並べ替え
   final sortedEntries = data.entries.toList()
     ..sort((a, b) => b.value.compareTo(a.value));
+
+  int? touchedIndex; // タップやホバーで強調するセクション
 
   return Card(
     margin: const EdgeInsets.only(bottom: 16),
@@ -197,23 +200,45 @@ Widget buildPieInteractive(String title, Map<String, int> data) {
                 // 円グラフ
                 Expanded(
                   flex: 2,
-                  child: PieChart(
-                    PieChartData(
-                      sections: sortedEntries.map((e) {
-                        final percent = total == 0
-                            ? 0.0
-                            : (e.value / total * 100);
-                        return PieChartSectionData(
-                          value: percent,
-                          color: lrigColor(e.key),
-                          radius: 65,
-                          title: '', // ラベルは外に表示
-                        );
-                      }).toList(),
-                      sectionsSpace: 2,
-                      startDegreeOffset: -90, // 右上からスタート
-                      centerSpaceRadius: 0,
-                    ),
+                  child: StatefulBuilder(
+                    builder: (context, setLocalState) {
+                      return PieChart(
+                        PieChartData(
+                          sections: List.generate(sortedEntries.length, (i) {
+                            final e = sortedEntries[i];
+                            final percent =
+                                total == 0 ? 0.0 : (e.value / total * 100);
+                            final isTouched = i == touchedIndex;
+                            return PieChartSectionData(
+                              value: percent,
+                              color: lrigColor(e.key),
+                              radius: isTouched ? 75 : 65, // タップで拡大
+                              title: '', // ラベルは外に表示
+                              badgeWidget: null,
+                              badgePositionPercentageOffset: .98,
+                              titleStyle: const TextStyle(fontSize: 0),
+                            );
+                          }),
+                          sectionsSpace: 2,
+                          startDegreeOffset: -90,
+                          centerSpaceRadius: 0,
+                          pieTouchData: PieTouchData(
+                            touchCallback: (event, pieTouchResponse) {
+                              setLocalState(() {
+                                if (!event.isInterestedForInteractions ||
+                                    pieTouchResponse == null ||
+                                    pieTouchResponse.touchedSection == null) {
+                                  touchedIndex = null;
+                                  return;
+                                }
+                                touchedIndex = pieTouchResponse
+                                    .touchedSection!.touchedSectionIndex;
+                              });
+                            },
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
 
@@ -225,8 +250,7 @@ Widget buildPieInteractive(String title, Map<String, int> data) {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: sortedEntries.map((e) {
-                      final percent =
-                          total == 0 ? 0.0 : (e.value / total * 100);
+                      final percent = total == 0 ? 0.0 : (e.value / total * 100);
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 2),
                         child: Row(
@@ -239,26 +263,26 @@ Widget buildPieInteractive(String title, Map<String, int> data) {
                             const SizedBox(width: 6),
                             // 白枠黒文字ラベル
                             Stack(
-  children: [
-                            Text(
-                              "${e.key} ${percent.toStringAsFixed(1)}%",
-                              style: TextStyle(
-                                fontSize: 12,
-                                foreground: Paint()
-                                  ..style = PaintingStyle.stroke
-                                  ..strokeWidth = 2
-                                  ..color = Colors.white,
-                              ),
+                              children: [
+                                Text(
+                                  "${e.key} ${percent.toStringAsFixed(1)}%",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    foreground: Paint()
+                                      ..style = PaintingStyle.stroke
+                                      ..strokeWidth = 2
+                                      ..color = Colors.white,
+                                  ),
+                                ),
+                                Text(
+                                  "${e.key} ${percent.toStringAsFixed(1)}%",
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ],
                             ),
-                            Text(
-                              "${e.key} ${percent.toStringAsFixed(1)}%",
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.black,
-                              ),
-                            ),
-    ],
-                              ),
                           ],
                         ),
                       );

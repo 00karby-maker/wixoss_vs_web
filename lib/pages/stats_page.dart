@@ -172,56 +172,137 @@ final Map<String, Color> lrigColors = {
     );
   }
 
-  /// 円グラフ
-  Widget buildPie(String title, Map<String, int> data) {
-    final total = data.values.fold<int>(0, (a, b) => a + b);
+  //円グラフ
+Widget buildPieInteractive(String title, Map<String, int> data) {
+  final total = data.values.fold<int>(0, (a, b) => a + b);
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Text(title,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 220,
-              child: PieChart(
-                PieChartData(
-                  sections: data.entries.map((e) {
-                    final percent = total == 0 ? 0.0 : (e.value / total * 100);
-                    final bgColor = lrigColor(e.key);
-                    final showLabel = percent >= 5;
-                    return PieChartSectionData(
-                      value: percent.toDouble(),
-                      color: lrigColor(e.key),
-                      radius: 65,
-                      title: showLabel
-        ? "${e.key}\n${percent.toStringAsFixed(1)}%"
-        : "",
-                      titleStyle: TextStyle(
-  fontSize: 12,
-  fontWeight: FontWeight.bold,
-  color: getTextColor(bgColor),
-  shadows: [
-    Shadow(
-      blurRadius: 3,
-      color: Colors.black.withOpacity(0.7),
-      offset: Offset(1, 1),
-    ),
-  ],
-),
-                    );
-                  }).toList(),
-                ),
-              ),
-            ),
-          ],
-        ),
+  // パーセンテージ順に並び替え
+  final sortedEntries = data.entries.toList()
+    ..sort((a, b) {
+      final pA = total == 0 ? 0.0 : (a.value / total * 100);
+      final pB = total == 0 ? 0.0 : (b.value / total * 100);
+      return pB.compareTo(pA);
+    });
+
+  int? touchedIndex; // タップ/ホバーで選択されたセクション
+
+  return Card(
+    margin: const EdgeInsets.only(bottom: 16),
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          StatefulBuilder(
+            builder: (context, setState) {
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 円グラフ
+                  SizedBox(
+                    height: 220,
+                    width: 220,
+                    child: PieChart(
+                      PieChartData(
+                        sections: List.generate(sortedEntries.length, (i) {
+                          final e = sortedEntries[i];
+                          final percent = total == 0 ? 0.0 : (e.value / total * 100);
+                          final bgColor = lrigColor(e.key);
+                          final isSelected = i == touchedIndex;
+                          return PieChartSectionData(
+                            value: percent,
+                            color: bgColor,
+                            radius: isSelected ? 75 : 65, // 選択時に少し拡大
+                            showTitle: false,
+                            borderSide: isSelected
+                                ? BorderSide(color: Colors.black, width: 2)
+                                : BorderSide.none,
+                          );
+                        }),
+                        sectionsSpace: 2,
+                        centerSpaceRadius: 0,
+                        pieTouchData: PieTouchData(
+                          touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                            if (event is FlTapUpEvent || event is FlLongPressEnd) return;
+                            setState(() {
+                              touchedIndex = pieTouchResponse?.touchedSection?.touchedSectionIndex;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  // ラベルリスト
+                  Expanded(
+                    child: SizedBox(
+                      height: 220,
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: List.generate(sortedEntries.length, (i) {
+                            final e = sortedEntries[i];
+                            final percent = total == 0 ? 0.0 : (e.value / total * 100);
+                            final bgColor = lrigColor(e.key);
+                            final isSelected = i == touchedIndex;
+
+                            return AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? Colors.yellow.withOpacity(0.3)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 16,
+                                    height: 16,
+                                    decoration: BoxDecoration(
+                                      color: bgColor,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white, // 白枠
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        "${e.key} : ${percent.toStringAsFixed(1)}%",
+                                        style: TextStyle(
+                                          color: Colors.black, // 黒文字固定
+                                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   /// 棒グラフ（勝率）
   Widget buildBar(

@@ -94,23 +94,26 @@ class _EditPageState extends State<EditPage> {
 
   /// 🔥 Firebase対応画像アップロード
   Future<void> pickImage() async {
-    final picker = ImagePicker();
-    final file = await picker.pickImage(source: ImageSource.gallery);
-    if (file == null) return;
+  final picker = ImagePicker();
+  final file = await picker.pickImage(source: ImageSource.gallery);
 
-    final bytes = await file.readAsBytes(); // Web対応
-    final name = DateTime.now().millisecondsSinceEpoch.toString();
+  if (file == null) return;
 
-    final ref = FirebaseStorage.instance.ref().child('images/$name.jpg');
+  final bytes = await file.readAsBytes();
+  final name = DateTime.now().millisecondsSinceEpoch.toString();
 
-    await ref.putData(bytes);
+  final ref = FirebaseStorage.instance
+      .ref()
+      .child('images/$name.jpg');
 
-    final url = await ref.getDownloadURL();
+  await ref.putData(bytes);
 
-    setState(() {
-      imagePath = url; // URL保存
-    });
-  }
+  final url = await ref.getDownloadURL();
+
+  setState(() {
+    imagePath = url;
+  });
+}
 
   void save() {
     widget.record

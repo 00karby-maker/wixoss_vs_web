@@ -94,8 +94,14 @@ class _EditPageState extends State<EditPage> {
   /// 🔥 Firebase対応画像アップロード
   Future<void> pickImage() async {
   final picker = ImagePicker();
-  final file = await picker.pickImage(source: ImageSource.gallery);
-
+    
+  final file = await picker.pickImage(
+    source: ImageSource.gallery,
+    maxWidth: 800,
+    maxHeight: 800,
+    imageQuality: 70,
+  );
+    
   if (file == null) return;
 
   final bytes = await file.readAsBytes();

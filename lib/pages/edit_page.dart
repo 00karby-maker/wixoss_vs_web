@@ -84,12 +84,13 @@ class _EditPageState extends State<EditPage> {
   }
 
   Future<void> initLrigBox() async {
-    lrigBox = await Hive.openBox('lrigUsage');
-    for (var key in lrigBox.keys) {
-      lrigCount[key] = lrigBox.get(key);
-    }
-    setState(() {});
+  lrigBox = await Hive.openBox('lrigUsage');
+  lrigCount.clear();
+  for (var key in lrigBox.keys) {
+    lrigCount[key] = lrigBox.get(key);
   }
+  setState(() {});
+}
 
   /// 🔥 Firebase対応画像アップロード
   Future<void> pickImage() async {
@@ -132,6 +133,16 @@ class _EditPageState extends State<EditPage> {
     Navigator.pop(context);
   }
 
+  String normalize(String input) {
+  return input.split('').map((c) {
+    final code = c.codeUnitAt(0);
+    if (code >= 0x3041 && code <= 0x3096) {
+      return String.fromCharCode(code + 0x60);
+    }
+    return c;
+  }).join();
+}
+
   Widget label(String t) => Padding(
         padding: const EdgeInsets.only(top: 10),
         child: Align(
@@ -141,27 +152,102 @@ class _EditPageState extends State<EditPage> {
       );
 
   Future<String?> selectLrig(BuildContext context) async {
-    return showDialog<String>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("ルリグ選択"),
-          content: SizedBox(
-            width: double.maxFinite,
-            height: 300,
-            child: ListView(
-              children: lrigList.map((e) {
-                return ListTile(
-                  title: Text(e),
-                  onTap: () => Navigator.pop(context, e),
-                );
-              }).toList(),
+  String search = "";
+
+  return showDialog<String>(
+    context: context,
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+
+          final normalizedSearch = normalize(search);
+
+          // よく使うルリグ
+          final frequent = lrigList
+              .where((e) => (lrigCount[e] ?? 0) > 0)
+              .toList()
+            ..sort((a, b) =>
+                (lrigCount[b] ?? 0).compareTo(lrigCount[a] ?? 0));
+
+          // 未使用
+          final others = lrigList
+              .where((e) => (lrigCount[e] ?? 0) == 0)
+              .toList();
+
+          final merged = [...frequent, ...others];
+
+          final filtered = merged.where((e) {
+            return normalize(e).contains(normalizedSearch);
+          }).toList();
+
+          final mostUsed = frequent.isNotEmpty ? frequent.first : "";
+
+          return AlertDialog(
+            title: const Text("ルリグ選択"),
+            content: SizedBox(
+              width: double.maxFinite,
+              height: 350,
+              child: Column(
+                children: [
+                  TextField(
+                    decoration: const InputDecoration(
+                      hintText: "検索（ひらがなOK）",
+                      prefixIcon: Icon(Icons.search),
+                    ),
+                    onChanged: (v) {
+                      setState(() {
+                        search = v;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 10),
+
+                  if (search.isEmpty && mostUsed.isNotEmpty) ...[
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        "よく使うルリグ",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    ListTile(
+                      tileColor: Colors.amber.withOpacity(0.3),
+                      title: Text(mostUsed),
+                      trailing: Text("★${lrigCount[mostUsed]}"),
+                      onTap: () {
+                        Navigator.pop(context, mostUsed);
+                      },
+                    ),
+                    const Divider(),
+                  ],
+
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: filtered.length,
+                      itemBuilder: (context, index) {
+                        final item = filtered[index];
+                        return ListTile(
+                          title: Text(item),
+                          trailing: (lrigCount[item] ?? 0) > 0
+                              ? Text("★${lrigCount[item]}")
+                              : null,
+                          onTap: () {
+                            Navigator.pop(context, item);
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        );
-      },
-    );
-  }
+          );
+        },
+      );
+    },
+  );
+}
 
   @override
   void dispose() {

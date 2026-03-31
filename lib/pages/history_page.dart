@@ -23,9 +23,7 @@ class _HistoryPageState extends State<HistoryPage> {
       body: ValueListenableBuilder(
         valueListenable: box.listenable(),
         builder: (context, Box<MatchRecord> box, _) {
-          final list = box.values.toList();
-
-          list.sort((a, b) => b.date.compareTo(a.date));
+          final list = box.values.toList()..sort((a, b) => b.date.compareTo(a.date));
 
           if (list.isEmpty) {
             return const Center(child: Text('データがありません'));
@@ -39,25 +37,20 @@ class _HistoryPageState extends State<HistoryPage> {
 
               return Dismissible(
                 key: Key(r.key.toString()),
-
                 direction: DismissDirection.horizontal,
-
                 background: Container(
                   alignment: Alignment.centerLeft,
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   color: Colors.red,
                   child: const Icon(Icons.delete, color: Colors.white),
                 ),
-
                 secondaryBackground: Container(
                   alignment: Alignment.centerRight,
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   color: Colors.red,
                   child: const Icon(Icons.delete, color: Colors.white),
                 ),
-
-                /// 削除確認
-                confirmDismiss: (direction) async {
+                confirmDismiss: (_) async {
                   return await showDialog(
                     context: context,
                     builder: (_) => AlertDialog(
@@ -65,37 +58,28 @@ class _HistoryPageState extends State<HistoryPage> {
                       content: const Text("削除しますか？"),
                       actions: [
                         TextButton(
-                          onPressed: () =>
-                              Navigator.pop(context, false),
+                          onPressed: () => Navigator.pop(context, false),
                           child: const Text("キャンセル"),
                         ),
                         TextButton(
-                          onPressed: () =>
-                              Navigator.pop(context, true),
+                          onPressed: () => Navigator.pop(context, true),
                           child: const Text("削除"),
                         ),
                       ],
                     ),
                   );
                 },
-
-                /// 実削除
-                onDismissed: (direction) {
-                  r.delete();
-
+                onDismissed: (_) async {
+                  await r.delete();
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("削除しました")),
                   );
                 },
-
                 child: Container(
-                  margin: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 4),
+                  margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: r.result == "勝"
-                          ? Colors.red
-                          : Colors.blue,
+                      color: r.result == "勝" ? Colors.red : Colors.blue,
                       width: 2,
                     ),
                     borderRadius: BorderRadius.circular(12),
@@ -105,25 +89,17 @@ class _HistoryPageState extends State<HistoryPage> {
                       ListTile(
                         title: Text(
                           "${r.usedLrig} vs ${r.opponentLrig}",
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
                           "${r.date.year}/${r.date.month}/${r.date.day} ・ ${r.format} ・ ${r.result}",
                           style: TextStyle(
                             fontSize: 12,
-                            color: r.result == "勝"
-                                ? Colors.red
-                                : Colors.blue,
+                            color: r.result == "勝" ? Colors.red : Colors.blue,
                           ),
                         ),
                         trailing: IconButton(
-                          icon: Icon(
-                            isExpanded
-                                ? Icons.expand_less
-                                : Icons.expand_more,
-                          ),
+                          icon: Icon(isExpanded ? Icons.expand_less : Icons.expand_more),
                           onPressed: () {
                             setState(() {
                               _expanded[index] = !isExpanded;
@@ -131,109 +107,78 @@ class _HistoryPageState extends State<HistoryPage> {
                           },
                         ),
                       ),
-
                       if (isExpanded)
                         Padding(
                           padding: const EdgeInsets.all(8),
                           child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text("大会名: ${r.eventName}"),
                               Text("${r.round}回戦"),
-
                               if (r.imagePath != null)
                                 Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(
-                                          vertical: 8),
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
                                   child: GestureDetector(
                                     onTap: () {
-                                      final bytes =
-                                          base64Decode(
-                                              r.imagePath!);
+                                      final bytes = base64Decode(r.imagePath!);
                                       showDialog(
                                         context: context,
                                         builder: (_) => Dialog(
-                                          child:
-                                              InteractiveViewer(
-                                            child: Image.memory(
-                                                bytes),
+                                          child: InteractiveViewer(
+                                            child: Image.memory(bytes),
                                           ),
                                         ),
                                       );
                                     },
-                                    child: Image.memory(
-                                      base64Decode(
-                                          r.imagePath!),
-                                      height: 150,
-                                    ),
+                                    child: Image.memory(base64Decode(r.imagePath!), height: 150),
                                   ),
                                 ),
-
                               if (r.memo.isNotEmpty)
                                 ExpansionTile(
                                   title: const Text("メモ"),
                                   children: [
                                     Padding(
-                                      padding:
-                                          const EdgeInsets.all(
-                                              8),
+                                      padding: const EdgeInsets.all(8),
                                       child: Text(r.memo),
                                     )
                                   ],
                                 ),
-
                               Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.end,
+                                mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
                                   IconButton(
-                                    icon:
-                                        const Icon(Icons.edit),
+                                    icon: const Icon(Icons.edit),
                                     onPressed: () {
                                       Navigator.push(
                                         context,
-                                        MaterialPageRoute(
-                                          builder: (_) =>
-                                              EditPage(
-                                                  record: r),
-                                        ),
+                                        MaterialPageRoute(builder: (_) => EditPage(record: r)),
                                       );
                                     },
                                   ),
                                   IconButton(
-                                    icon: const Icon(
-                                        Icons.delete),
-                                    onPressed: () {
-                                      showDialog(
+                                    icon: const Icon(Icons.delete),
+                                    onPressed: () async {
+                                      final confirm = await showDialog(
                                         context: context,
-                                        builder: (_) =>
-                                            AlertDialog(
-                                          title: const Text(
-                                              "削除確認"),
-                                          content: const Text(
-                                              "削除しますか？"),
+                                        builder: (_) => AlertDialog(
+                                          title: const Text("削除確認"),
+                                          content: const Text("削除しますか？"),
                                           actions: [
                                             TextButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(
-                                                      context),
-                                              child: const Text(
-                                                  "キャンセル"),
-                                            ),
+                                                onPressed: () => Navigator.pop(context, false),
+                                                child: const Text("キャンセル")),
                                             TextButton(
-                                              onPressed: () {
-                                                r.delete();
-                                                Navigator.pop(
-                                                    context);
-                                              },
-                                              child: const Text(
-                                                  "削除"),
-                                            ),
+                                                onPressed: () => Navigator.pop(context, true),
+                                                child: const Text("削除")),
                                           ],
                                         ),
                                       );
+                                      if (confirm ?? false) {
+                                        await r.delete();
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text("削除しました")),
+                                        );
+                                      }
                                     },
                                   ),
                                 ],

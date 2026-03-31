@@ -232,7 +232,7 @@ class _EditPageState extends State<EditPage> {
       base64Decode(imagePath!),
       height: 120,
               ),
-
+            ),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: save,

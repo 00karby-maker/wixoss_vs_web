@@ -176,127 +176,93 @@ final Map<String, Color> lrigColors = {
 Widget buildPieInteractive(String title, Map<String, int> data) {
   final total = data.values.fold<int>(0, (a, b) => a + b);
 
-  // パーセンテージ順に並び替え
+  // 右上から％が高い順に並べ替え
   final sortedEntries = data.entries.toList()
-    ..sort((a, b) {
-      final pA = total == 0 ? 0.0 : (a.value / total * 100);
-      final pB = total == 0 ? 0.0 : (b.value / total * 100);
-      return pB.compareTo(pA);
-    });
-
-  int? touchedIndex; // タップ/ホバーで選択されたセクション
+    ..sort((a, b) => b.value.compareTo(a.value));
 
   return Card(
     margin: const EdgeInsets.only(bottom: 16),
     child: Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              style: const TextStyle(
+                  fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
-          StatefulBuilder(
-            builder: (context, setState) {
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 円グラフ
-                  SizedBox(
-                    height: 220,
-                    width: 220,
-                    child: PieChart(
-                      PieChartData(
-                        sections: List.generate(sortedEntries.length, (i) {
-                          final e = sortedEntries[i];
-                          final percent = total == 0 ? 0.0 : (e.value / total * 100);
-                          final bgColor = lrigColor(e.key);
-                          final isSelected = i == touchedIndex;
-                          return PieChartSectionData(
-                            value: percent,
-                            color: bgColor,
-                            radius: isSelected ? 75 : 65, // 選択時に少し拡大
-                            showTitle: false,
-                            borderSide: isSelected
-                                ? BorderSide(color: Colors.black, width: 2)
-                                : BorderSide.none,
-                          );
-                        }),
-                        sectionsSpace: 2,
-                        centerSpaceRadius: 0,
-                        pieTouchData: PieTouchData(
-                          touchCallback: (FlTouchEvent event, pieTouchResponse) {
-                            if (event is FlTapUpEvent || event is FlLongPressEnd) return;
-                            setState(() {
-                              touchedIndex = pieTouchResponse?.touchedSection?.touchedSectionIndex;
-                            });
-                          },
-                        ),
-                      ),
+          SizedBox(
+            height: 220,
+            child: Row(
+              children: [
+                // 円グラフ
+                Expanded(
+                  flex: 2,
+                  child: PieChart(
+                    PieChartData(
+                      sections: sortedEntries.map((e) {
+                        final percent = total == 0
+                            ? 0.0
+                            : (e.value / total * 100);
+                        return PieChartSectionData(
+                          value: percent,
+                          color: lrigColor(e.key),
+                          radius: 65,
+                          title: '', // ラベルは外に表示
+                        );
+                      }).toList(),
+                      sectionsSpace: 2,
+                      startDegreeOffset: -90, // 右上からスタート
+                      centerSpaceRadius: 0,
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  // ラベルリスト
-                  Expanded(
-                    child: SizedBox(
-                      height: 220,
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: List.generate(sortedEntries.length, (i) {
-                            final e = sortedEntries[i];
-                            final percent = total == 0 ? 0.0 : (e.value / total * 100);
-                            final bgColor = lrigColor(e.key);
-                            final isSelected = i == touchedIndex;
+                ),
 
-                            return AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? Colors.yellow.withOpacity(0.3)
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(4),
+                const SizedBox(width: 16),
+
+                // ラベル
+                Expanded(
+                  flex: 1,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: sortedEntries.map((e) {
+                      final percent =
+                          total == 0 ? 0.0 : (e.value / total * 100);
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 16,
+                              height: 16,
+                              color: lrigColor(e.key),
+                            ),
+                            const SizedBox(width: 6),
+                            // 白枠黒文字ラベル
+                            Text(
+                              "${e.key} ${percent.toStringAsFixed(1)}%",
+                              style: const TextStyle(
+                                fontSize: 12,
+                                foreground: Paint()
+                                  ..style = PaintingStyle.stroke
+                                  ..strokeWidth = 2
+                                  ..color = Colors.white,
                               ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 16,
-                                    height: 16,
-                                    decoration: BoxDecoration(
-                                      color: bgColor,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white, // 白枠
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Text(
-                                        "${e.key} : ${percent.toStringAsFixed(1)}%",
-                                        style: TextStyle(
-                                          color: Colors.black, // 黒文字固定
-                                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                            ),
+                            Text(
+                              "${e.key} ${percent.toStringAsFixed(1)}%",
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.black,
                               ),
-                            );
-                          }),
+                            ),
+                          ],
                         ),
-                      ),
-                    ),
+                      );
+                    }).toList(),
                   ),
-                ],
-              );
-            },
+                ),
+              ],
+            ),
           ),
         ],
       ),

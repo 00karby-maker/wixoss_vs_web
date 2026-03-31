@@ -172,7 +172,7 @@ final Map<String, Color> lrigColors = {
     );
   }
 
-  //円グラフ
+  //円グラフ(使用率)
 Widget buildPieInteractive(String title, Map<String, int> data) {
   final total = data.values.fold<int>(0, (a, b) => a + b);
 
@@ -192,9 +192,9 @@ Widget buildPieInteractive(String title, Map<String, int> data) {
               style: const TextStyle(
                   fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
-          IntrinsicHeight(
+          SizedBox(
+            height: 220,
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // 円グラフ
                 Expanded(
@@ -240,50 +240,74 @@ Widget buildPieInteractive(String title, Map<String, int> data) {
 
                 const SizedBox(width: 16),
 
-                // ラベル
+                // ラベル（スクロール対応）
                 Expanded(
                   flex: 1,
                   child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: sortedEntries.map((e) {
-                        final percent =
-                            total == 0 ? 0.0 : (e.value / total * 100);
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 2),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 16,
-                                height: 16,
-                                color: lrigColor(e.key),
-                              ),
-                              const SizedBox(width: 6),
-                              Stack(
-                                children: [
-                                  Text(
-                                    "${e.key} ${percent.toStringAsFixed(1)}%",
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      foreground: Paint()
-                                        ..style = PaintingStyle.stroke
-                                        ..strokeWidth = 2
-                                        ..color = Colors.white,
-                                    ),
+                    child: StatefulBuilder(
+                      builder: (context, setLocalState) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: List.generate(sortedEntries.length, (i) {
+                            final e = sortedEntries[i];
+                            final percent =
+                                total == 0 ? 0.0 : (e.value / total * 100);
+                            final isTouched = i == touchedIndex;
+
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 2),
+                              child: MouseRegion(
+                                onEnter: (_) => setLocalState(() {
+                                  touchedIndex = i;
+                                }),
+                                onExit: (_) => setLocalState(() {
+                                  touchedIndex = null;
+                                }),
+                                child: GestureDetector(
+                                  onTap: () => setLocalState(() {
+                                    touchedIndex = i;
+                                  }),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 16,
+                                        height: 16,
+                                        color: lrigColor(e.key),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Stack(
+                                        children: [
+                                          // 白枠
+                                          Text(
+                                            "${e.key} ${percent.toStringAsFixed(1)}%",
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              foreground: Paint()
+                                                ..style = PaintingStyle.stroke
+                                                ..strokeWidth = 2
+                                                ..color = Colors.white,
+                                            ),
+                                          ),
+                                          // 内側文字色
+                                          Text(
+                                            "${e.key} ${percent.toStringAsFixed(1)}%",
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: isTouched
+                                                  ? Colors.red
+                                                  : Colors.black,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ),
-                                  Text(
-                                    "${e.key} ${percent.toStringAsFixed(1)}%",
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.black,
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
-                            ],
-                          ),
+                            );
+                          }),
                         );
-                      }).toList(),
+                      },
                     ),
                   ),
                 ),
@@ -295,7 +319,6 @@ Widget buildPieInteractive(String title, Map<String, int> data) {
     ),
   );
 }
-
   /// 棒グラフ（勝率）
   Widget buildBar(
       List<MapEntry<String, Map<String, int>>> entries,

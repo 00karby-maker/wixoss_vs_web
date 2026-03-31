@@ -214,7 +214,7 @@ class _InputPageState extends State<InputPage> {
       base64Decode(imagePath!),
       height: 120,
             ),
-
+           ),
           label("大会名"),
           TextField(controller: eventCtrl),
 

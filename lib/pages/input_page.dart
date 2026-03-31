@@ -90,26 +90,26 @@ class _InputPageState extends State<InputPage> {
 
   /// 🔥 Firebase対応画像アップロード
   Future<void> pickImage() async {
-    final picker = ImagePicker();
-    final file = await picker.pickImage(source: ImageSource.gallery);
+  final picker = ImagePicker();
+  final file = await picker.pickImage(source: ImageSource.gallery);
 
-    if (file == null) return;
+  if (file == null) return;
 
-    final bytes = await file.readAsBytes();
-    final name = DateTime.now().millisecondsSinceEpoch.toString();
+  final bytes = await file.readAsBytes();
+  final name = DateTime.now().millisecondsSinceEpoch.toString();
 
-    final ref = FirebaseStorage.instance
-        .ref()
-        .child('images/$name.jpg');
+  final ref = FirebaseStorage.instance
+      .ref()
+      .child('images/$name.jpg');
 
-    await ref.putData(bytes);
+  await ref.putData(bytes);
 
-    final url = await ref.getDownloadURL();
+  final url = await ref.getDownloadURL();
 
-    setState(() {
-      imagePath = url; // URL保存
-    });
-  }
+  setState(() {
+    imagePath = url;
+  });
+}
 
   void save() {
     final box = Hive.box<MatchRecord>('records');

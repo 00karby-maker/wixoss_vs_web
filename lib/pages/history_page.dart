@@ -1,10 +1,10 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import '../model/match_record.dart';
 import 'edit_page.dart';
 import 'search_state.dart';
+import 'dart:convert';
 
 class HistoryPage extends StatelessWidget {
   const HistoryPage({super.key});
@@ -86,19 +86,23 @@ class HistoryPage extends StatelessWidget {
 
                     /// 画像
                     if (r.imagePath != null)
-                      IconButton(
-                        icon: const Icon(Icons.image),
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (_) => Dialog(
-                              child: InteractiveViewer(
-                                child: Image.file(File(r.imagePath!)),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
+  IconButton(
+    icon: const Icon(Icons.image),
+    onPressed: () {
+      showDialog(
+        context: context,
+        builder: (_) => Dialog(
+          child: InteractiveViewer(
+            child: Image.memory(
+              base64Decode(r.imagePath!),
+              width: 300,
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
+      );
+    },
+  ),
 
                     /// 編集
                     IconButton(

@@ -41,8 +41,17 @@ class _InputPageState extends State<InputPage> {
   List<MatchInput> matches = [MatchInput()];
   String? imagePath;
 
-  late Box lrigBox;
-  final Map<String, int> lrigCount = {};
+  Map<String, int> calculateLrigCount() {
+  final box = Hive.box<MatchRecord>('records');
+  final Map<String, int> count = {};
+
+  for (var r in box.values) {
+    if (r.usedLrig.isEmpty) continue;
+    count[r.usedLrig] = (count[r.usedLrig] ?? 0) + 1;
+  }
+
+  return count;
+}
 
   final List<String> lrigList = [
 //白ルリグ
@@ -76,16 +85,8 @@ class _InputPageState extends State<InputPage> {
   @override
   void initState() {
     super.initState();
-    initLrigBox();
   }
 
-  Future<void> initLrigBox() async {
-    lrigBox = await Hive.openBox('lrigUsage');
-    for (var key in lrigBox.keys) {
-      lrigCount[key] = lrigBox.get(key);
-    }
-    setState(() {});
-  }
 
   /// 🔥 Firebase対応画像アップロード
   Future<void> pickImage() async {
@@ -185,39 +186,27 @@ Future<String?> selectLrig(BuildContext context) async {
       return StatefulBuilder(
         builder: (context, setState) {
 
-          /// ★ 毎回Hiveから最新を読み込み
-          lrigCount.clear();
-          for (var key in lrigBox.keys) {
-            lrigCount[key] = lrigBox.get(key);
-          }
+          // Hive の lrigUsage は不要
+          final lrigCount = calculateLrigCount(); // ★毎回計算
 
           final normalizedSearch = normalize(search);
 
-          /// =========================
-          /// ★ ここが今回のメイン処理
-          /// =========================
-
-          // よく使うルリグ（使用回数 > 0）
           final frequent = lrigList
               .where((e) => (lrigCount[e] ?? 0) > 0)
               .toList()
             ..sort((a, b) =>
                 (lrigCount[b] ?? 0).compareTo(lrigCount[a] ?? 0));
 
-          // 未使用ルリグ（元の順番そのまま）
           final others = lrigList
               .where((e) => (lrigCount[e] ?? 0) == 0)
               .toList();
 
-          // 合体（上に頻出、下に通常順）
           final merged = [...frequent, ...others];
 
-          // 検索フィルタ
           final filtered = merged.where((e) {
             return normalize(e).contains(normalizedSearch);
           }).toList();
 
-          /// ★ 最多使用ルリグ（ヘッダー用）
           final mostUsed = frequent.isNotEmpty ? frequent.first : "";
 
           return AlertDialog(
@@ -232,15 +221,10 @@ Future<String?> selectLrig(BuildContext context) async {
                       hintText: "検索（ひらがなOK）",
                       prefixIcon: Icon(Icons.search),
                     ),
-                    onChanged: (v) {
-                      setState(() {
-                        search = v;
-                      });
-                    },
+                    onChanged: (v) => setState(() => search = v),
                   ),
                   const SizedBox(height: 10),
 
-                  /// ★ よく使うルリグ（検索してない時だけ表示）
                   if (search.isEmpty && mostUsed.isNotEmpty) ...[
                     const Align(
                       alignment: Alignment.centerLeft,
@@ -254,9 +238,7 @@ Future<String?> selectLrig(BuildContext context) async {
                       tileColor: Colors.amber.withOpacity(0.3),
                       title: Text(mostUsed),
                       trailing: Text("★${lrigCount[mostUsed]}"),
-                      onTap: () {
-                        Navigator.pop(context, mostUsed);
-                      },
+                      onTap: () => Navigator.pop(context, mostUsed),
                     ),
                     const Divider(),
                   ],
@@ -271,9 +253,7 @@ Future<String?> selectLrig(BuildContext context) async {
                           trailing: (lrigCount[item] ?? 0) > 0
                               ? Text("★${lrigCount[item]}")
                               : null,
-                          onTap: () {
-                            Navigator.pop(context, item);
-                          },
+                          onTap: () => Navigator.pop(context, item),
                         );
                       },
                     ),

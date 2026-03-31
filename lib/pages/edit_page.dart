@@ -1,8 +1,8 @@
+import 'dart:typed_data';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'dart:typed_data';
-import 'dart:convert';
 import '../model/match_record.dart';
 
 class EditPage extends StatefulWidget {
@@ -30,32 +30,23 @@ class _EditPageState extends State<EditPage> {
   String opponentLrig = "";
 
   final List<String> lrigList = [
-    // 白ルリグ
     "タマ","タウィル","サシェ","リメンバ","ドーナ",
     "アキノ","LION","ノヴァ","ゆかゆか","ガブリエラ",
     "るう子","ゆきめ","エマ","にじさんじ","リゼ",
     "アンジュ","アズサ","サオリ","ネージュ",
-    // 赤ルリグ
     "花代","ユヅキ","赤タマ","ララ・ルー","リル",
     "カーニバル","レイラ","LOV","ヒラナ","LOVIT",
     "エクス","アザエラ","ちより","ジール",
-    // 青ルリグ
     "ピルルク","エルドラ","ミルルン","ソウイ","あや",
     "青リメンバ","青タマ","青ウムル","レイ","タマゴ",
     "マドカ","みこみこ","ミカエラ","あきら","ネル",
-    "ミヤコ","リップル",
-    // 緑ルリグ
-    "緑子","アン","アイヤイ","メル","ママ",
+    "ミヤコ","リップル","緑子","アン","アイヤイ","メル","ママ",
     "緑ユヅキ","緑ピルルク","アト","WOLF","バン",
     "サンガ","緑カーニバル","ひとえ","ホシノ","シロコ",
-    "ユカリ","ミーティア",
-    // 黒ルリグ
-    "ウリス","イオナ","ウムル","ミュウ","ハナレ",
+    "ユカリ","ミーティア","ウリス","イオナ","ウムル","ミュウ","ハナレ",
     "アルフォウ","ナナシ","グズ子","黒カーニバル","ムジカ",
     "デウス","マキナ","まほまほ","黒タマ","ヤミノ",
-    "ヒナ","シュン","とこ","ヴィオラ",
-    // 無色ルリグ
-    "夢限"
+    "ヒナ","シュン","とこ","ヴィオラ","夢限"
   ];
 
   @override
@@ -64,12 +55,12 @@ class _EditPageState extends State<EditPage> {
     eventCtrl = TextEditingController(text: widget.record.eventName);
     memoCtrl = TextEditingController(text: widget.record.memo);
 
-    result = widget.record.result;
-    firstSecond = widget.record.firstSecond;
+    format = ['A','K','D'].contains(widget.record.format) ? widget.record.format : 'A';
+    round = widget.record.round > 0 && widget.record.round <= 10 ? widget.record.round : 1;
+    firstSecond = ['先手','後手'].contains(widget.record.firstSecond) ? widget.record.firstSecond : '先手';
+    result = ['勝','負'].contains(widget.record.result) ? widget.record.result : '勝';
     selfLb = widget.record.selfLb;
     oppLb = widget.record.opponentLb;
-    format = widget.record.format;
-    round = widget.record.round;
     date = widget.record.date;
 
     imagePath = widget.record.imagePath;
@@ -79,18 +70,10 @@ class _EditPageState extends State<EditPage> {
 
   Future<void> pickImage() async {
     final picker = ImagePicker();
-    final file = await picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 800,
-      maxHeight: 800,
-      imageQuality: 70,
-    );
+    final file = await picker.pickImage(source: ImageSource.gallery, maxWidth: 800, maxHeight: 800, imageQuality: 70);
     if (file == null) return;
-
     final bytes = await file.readAsBytes();
-    setState(() {
-      imagePath = base64Encode(bytes);
-    });
+    setState(() => imagePath = base64Encode(bytes));
   }
 
   void save() {
@@ -112,117 +95,50 @@ class _EditPageState extends State<EditPage> {
     Navigator.pop(context);
   }
 
-  String normalize(String input) {
-    return input.split('').map((c) {
-      final code = c.codeUnitAt(0);
-      if (code >= 0x3041 && code <= 0x3096) {
-        return String.fromCharCode(code + 0x60);
-      }
-      return c;
-    }).join();
-  }
+  String normalize(String input) => input.split('').map((c) {
+    final code = c.codeUnitAt(0);
+    if (code >= 0x3041 && code <= 0x3096) return String.fromCharCode(code + 0x60);
+    return c;
+  }).join();
 
   Widget label(String t) => Padding(
-        padding: const EdgeInsets.only(top: 10),
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: Text(t, style: const TextStyle(fontWeight: FontWeight.bold)),
-        ),
-      );
+    padding: const EdgeInsets.only(top: 10),
+    child: Align(alignment: Alignment.centerLeft, child: Text(t, style: const TextStyle(fontWeight: FontWeight.bold))),
+  );
 
   Future<String?> selectLrig(BuildContext context) async {
     String search = "";
-
     return showDialog<String>(
       context: context,
       builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return ValueListenableBuilder(
-              valueListenable: Hive.box<MatchRecord>('records').listenable(),
-              builder: (context, _, __) {
-                // Box更新時に使用回数を計算
-                final lrigCount = <String, int>{};
-                for (var r in Hive.box<MatchRecord>('records').values) {
-                  if (r.usedLrig.isEmpty) continue;
-                  lrigCount[r.usedLrig] = (lrigCount[r.usedLrig] ?? 0) + 1;
-                }
-
-                final normalizedSearch = normalize(search);
-                final frequent = lrigList
-                    .where((e) => (lrigCount[e] ?? 0) > 0)
-                    .toList()
-                  ..sort((a, b) =>
-                      (lrigCount[b] ?? 0).compareTo(lrigCount[a] ?? 0));
-
-                final others = lrigList
-                    .where((e) => (lrigCount[e] ?? 0) == 0)
-                    .toList();
-
-                final merged = [...frequent, ...others];
-                final filtered = merged
-                    .where((e) => normalize(e).contains(normalizedSearch))
-                    .toList();
-
-                final mostUsed = frequent.isNotEmpty ? frequent.first : "";
-
-                return AlertDialog(
-                  title: const Text("ルリグ選択"),
-                  content: SizedBox(
-                    width: double.maxFinite,
-                    height: 350,
-                    child: Column(
-                      children: [
-                        TextField(
-                          decoration: const InputDecoration(
-                            hintText: "検索（ひらがなOK）",
-                            prefixIcon: Icon(Icons.search),
-                          ),
-                          onChanged: (v) {
-                            setState(() => search = v);
-                          },
-                        ),
-                        const SizedBox(height: 10),
-                        if (search.isEmpty && mostUsed.isNotEmpty) ...[
-                          const Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              "よく使うルリグ",
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          const SizedBox(height: 5),
-                          ListTile(
-                            tileColor: Colors.amber.withOpacity(0.3),
-                            title: Text(mostUsed),
-                            trailing: Text("★${lrigCount[mostUsed]}"),
-                            onTap: () => Navigator.pop(context, mostUsed),
-                          ),
-                          const Divider(),
-                        ],
-                        Expanded(
-                          child: ListView.builder(
-                            itemCount: filtered.length,
-                            itemBuilder: (context, index) {
-                              final item = filtered[index];
-                              return ListTile(
-                                title: Text(item),
-                                trailing: (lrigCount[item] ?? 0) > 0
-                                    ? Text("★${lrigCount[item]}")
-                                    : null,
-                                onTap: () => Navigator.pop(context, item),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
+        return StatefulBuilder(builder: (context, setState) {
+          final filtered = lrigList.where((e) => normalize(e).contains(normalize(search))).toList();
+          return AlertDialog(
+            title: const Text("ルリグ選択"),
+            content: SizedBox(
+              width: double.maxFinite,
+              height: 350,
+              child: Column(
+                children: [
+                  TextField(
+                    decoration: const InputDecoration(hintText: "検索（ひらがなOK）", prefixIcon: Icon(Icons.search)),
+                    onChanged: (v) => setState(() => search = v),
+                  ),
+                  const SizedBox(height: 10),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: filtered.length,
+                      itemBuilder: (context, index) => ListTile(
+                        title: Text(filtered[index]),
+                        onTap: () => Navigator.pop(context, filtered[index]),
+                      ),
                     ),
                   ),
-                );
-              },
-            );
-          },
-        );
+                ],
+              ),
+            ),
+          );
+        });
       },
     );
   }
@@ -284,28 +200,76 @@ class _EditPageState extends State<EditPage> {
               },
             ),
 
+            label("フォーマット"),
+            DropdownButton<String>(
+              value: format,
+              isExpanded: true,
+              items: ['A','K','D'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+              onChanged: (v) => setState(() => format = v!),
+            ),
+
+            label("●回戦"),
+            DropdownButton<int>(
+              value: round,
+              isExpanded: true,
+              items: List.generate(10, (i) => DropdownMenuItem(value: i+1, child: Text("${i+1}回戦"))),
+              onChanged: (v) => setState(() => round = v!),
+            ),
+
+            label("先後・勝敗・LB数"),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButton<String>(
+                    value: firstSecond,
+                    isExpanded: true,
+                    items: ["先手","後手"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                    onChanged: (v) => setState(() => firstSecond = v!),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: DropdownButton<String>(
+                    value: result,
+                    isExpanded: true,
+                    items: ["勝","負"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                    onChanged: (v) => setState(() => result = v!),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: DropdownButton<int>(
+                    value: selfLb,
+                    isExpanded: true,
+                    items: List.generate(10, (i) => DropdownMenuItem(value: i, child: Text("$i"))),
+                    onChanged: (v) => setState(() => selfLb = v!),
+                  ),
+                ),
+                const Text(" - "),
+                Expanded(
+                  child: DropdownButton<int>(
+                    value: oppLb,
+                    isExpanded: true,
+                    items: List.generate(10, (i) => DropdownMenuItem(value: i, child: Text("$i"))),
+                    onChanged: (v) => setState(() => oppLb = v!),
+                  ),
+                ),
+              ],
+            ),
+
             label("メモ"),
             TextField(controller: memoCtrl, maxLines: null),
 
             const SizedBox(height: 10),
-
-            ElevatedButton(
-              onPressed: pickImage,
-              child: const Text("デッキレシピ"),
-            ),
+            ElevatedButton(onPressed: pickImage, child: const Text("デッキレシピ")),
             if (imagePath != null)
               Padding(
                 padding: const EdgeInsets.only(top: 10),
-                child: Image.memory(
-                  base64Decode(imagePath!),
-                  height: 120,
-                ),
+                child: Image.memory(base64Decode(imagePath!), height: 120),
               ),
+
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: save,
-              child: const Text("保存"),
-            ),
+            ElevatedButton(onPressed: save, child: const Text("保存")),
           ],
         ),
       ),

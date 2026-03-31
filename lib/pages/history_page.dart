@@ -95,7 +95,6 @@ class HistoryPage extends StatelessWidget {
           child: InteractiveViewer(
             child: Image.memory(
               base64Decode(r.imagePath!),
-              width: 300,
               fit: BoxFit.contain,
             ),
           ),

@@ -164,8 +164,8 @@ final Map<String, Color> lrigColors = {
 
           const SizedBox(height: 16),
 
-          buildPie("使用ルリグ割合", used),
-          buildPie("対戦ルリグ割合", opp),
+          buildPieInteractive("使用ルリグ割合", used),
+          buildPieInteractive("対戦ルリグ割合", opp),
           buildBar(entries, winMap),
         ],
       ),

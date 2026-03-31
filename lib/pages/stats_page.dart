@@ -238,9 +238,11 @@ Widget buildPieInteractive(String title, Map<String, int> data) {
                             ),
                             const SizedBox(width: 6),
                             // 白枠黒文字ラベル
+                            Stack(
+  children: [
                             Text(
                               "${e.key} ${percent.toStringAsFixed(1)}%",
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
                                 foreground: Paint()
                                   ..style = PaintingStyle.stroke
@@ -255,6 +257,8 @@ Widget buildPieInteractive(String title, Map<String, int> data) {
                                 color: Colors.black,
                               ),
                             ),
+    ],
+                              ),
                           ],
                         ),
                       );

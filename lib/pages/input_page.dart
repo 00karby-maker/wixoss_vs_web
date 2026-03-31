@@ -185,9 +185,14 @@ Future<String?> selectLrig(BuildContext context) async {
     builder: (context) {
       return StatefulBuilder(
         builder: (context, setState) {
+          final box = Hive.box<MatchRecord>('records');
 
-          // Hive の lrigUsage は不要
-          final lrigCount = calculateLrigCount(); // ★毎回計算
+          // ★ Hive の変更を監視
+          final lrigCount = <String, int>{};
+          for (var r in box.values) {
+            if (r.usedLrig.isEmpty) continue;
+            lrigCount[r.usedLrig] = (lrigCount[r.usedLrig] ?? 0) + 1;
+          }
 
           final normalizedSearch = normalize(search);
 
@@ -244,16 +249,45 @@ Future<String?> selectLrig(BuildContext context) async {
                   ],
 
                   Expanded(
-                    child: ListView.builder(
-                      itemCount: filtered.length,
-                      itemBuilder: (context, index) {
-                        final item = filtered[index];
-                        return ListTile(
-                          title: Text(item),
-                          trailing: (lrigCount[item] ?? 0) > 0
-                              ? Text("★${lrigCount[item]}")
-                              : null,
-                          onTap: () => Navigator.pop(context, item),
+                    child: ValueListenableBuilder(
+                      valueListenable: box.listenable(),
+                      builder: (context, _, __) {
+                        // Box 更新時にリスト再計算
+                        final updatedCount = <String, int>{};
+                        for (var r in box.values) {
+                          if (r.usedLrig.isEmpty) continue;
+                          updatedCount[r.usedLrig] =
+                              (updatedCount[r.usedLrig] ?? 0) + 1;
+                        }
+
+                        final updatedFrequent = lrigList
+                            .where((e) => (updatedCount[e] ?? 0) > 0)
+                            .toList()
+                          ..sort((a, b) => (updatedCount[b] ?? 0)
+                              .compareTo(updatedCount[a] ?? 0));
+
+                        final updatedOthers = lrigList
+                            .where((e) => (updatedCount[e] ?? 0) == 0)
+                            .toList();
+
+                        final updatedMerged = [...updatedFrequent, ...updatedOthers];
+
+                        final updatedFiltered = updatedMerged.where((e) {
+                          return normalize(e).contains(normalize(search));
+                        }).toList();
+
+                        return ListView.builder(
+                          itemCount: updatedFiltered.length,
+                          itemBuilder: (context, index) {
+                            final item = updatedFiltered[index];
+                            return ListTile(
+                              title: Text(item),
+                              trailing: (updatedCount[item] ?? 0) > 0
+                                  ? Text("★${updatedCount[item]}")
+                                  : null,
+                              onTap: () => Navigator.pop(context, item),
+                            );
+                          },
                         );
                       },
                     ),

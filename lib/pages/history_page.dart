@@ -62,7 +62,7 @@ class _HistoryPageState extends State<HistoryPage> {
                     context: context,
                     builder: (_) => AlertDialog(
                       title: const Text("削除確認"),
-                      content: const Text("スワイプで削除しますか？"),
+                      content: const Text("削除しますか？"),
                       actions: [
                         TextButton(
                           onPressed: () =>

@@ -6,38 +6,6 @@ import '../model/match_record.dart';
 import 'edit_page.dart';
 import 'search_state.dart';
 
-/// ===== ルリグ色設定 =====
-class _StatsPageState extends State<StatsPage> {
-
-  final List<String> lrigList = [
-// 白ルリグ
-  "タマ","タウィル","サシェ","リメンバ","ドーナ",
-  "アキノ","LION","ノヴァ","ゆかゆか","ガブリエラ",
-  "るう子","ゆきめ","エマ","にじさんじ","リゼ",
-  "アンジュ","アズサ","サオリ","ネージュ",
-// 赤ルリグ
-  "花代","ユヅキ","赤タマ","ララ・ルー","リル",
-  "カーニバル","レイラ","LOV","ヒラナ","LOVIT",
-  "エクス","アザエラ","ちより","ジール",
-// 青ルリグ
-  "ピルルク","エルドラ","ミルルン","ソウイ","あや",
-  "青リメンバ","青タマ","青ウムル","レイ","タマゴ",
-  "マドカ","みこみこ","ミカエラ","あきら","ネル",
-  "ミヤコ","リップル",
-// 緑ルリグ
-  "緑子","アン","アイヤイ","メル","ママ",
-  "緑ユヅキ","緑ピルルク","アト","WOLF","バン",
-  "サンガ","緑カーニバル","ひとえ","ホシノ","シロコ",
-  "ユカリ","ミーティア",
-// 黒ルリグ
-  "ウリス","イオナ","ウムル","ミュウ","ハナレ",
-  "アルフォウ","ナナシ","グズ子","黒カーニバル","ムジカ",
-  "デウス","マキナ","まほまほ","黒タマ","ヤミノ",
-  "ヒナ","シュン","とこ","ヴィオラ",
-// 無ルリグ
-  "夢限"
-];
-
 // 固定の色マップ
 final Map<String, Color> lrigColors = {
     // 白ルリグ
@@ -76,7 +44,6 @@ Color lrigColor(String name) {
 Color getTextColor(Color bgColor) {
   final brightness = ThemeData.estimateBrightnessForColor(bgColor);
   return brightness == Brightness.dark ? Colors.white : Colors.black;
-}
 }
 class HistoryPage extends StatelessWidget {
   const HistoryPage({super.key});

@@ -278,7 +278,8 @@ final Map<String, Color> lrigColors = {
                           final i = value.toInt();
                           if (i >= entries.length) return const SizedBox();
                           // 上位5位はTier1〜Tier5、それ以降は数字表示
-                          final label = i < 5 ? "Tier${i + 1}" : "$i";
+                          final label = i < 5 ? "Tier${i + 1}" : "";
+                          if (label.isEmpty) return const SizedBox();
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 4),
                             child: Text(label,

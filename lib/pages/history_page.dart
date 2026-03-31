@@ -102,34 +102,57 @@ class HistoryPage extends StatelessWidget {
               child: Stack(
                 children: [
                   /// ===== 背景2色 =====
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          height: 100,
-                          decoration: BoxDecoration(
-                            color: leftColor,
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(12),
-                              bottomLeft: Radius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Container(
-                          height: 100,
-                          decoration: BoxDecoration(
-                            color: rightColor,
-                            borderRadius: const BorderRadius.only(
-                              topRight: Radius.circular(12),
-                              bottomRight: Radius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  Container(
+  margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+  decoration: BoxDecoration(
+    /// ★ 勝敗で枠色変更
+    border: Border.all(
+      color: r.result == "勝" ? Colors.red : Colors.blue,
+      width: 2,
+    ),
+    borderRadius: BorderRadius.circular(12),
+
+    /// ★ グラデーション背景
+    gradient: LinearGradient(
+      begin: Alignment.centerLeft,
+      end: Alignment.centerRight,
+      colors: [
+        leftColor,
+        rightColor,
+      ],
+    ),
+  ),
+  child: ListTile(
+    title: Text(
+      "${r.usedLrig} vs ${r.opponentLrig}",
+      style: TextStyle(
+        fontWeight: FontWeight.bold,
+        color: getTextColor(leftColor),
+        shadows: const [
+          Shadow(
+            blurRadius: 4,
+            color: Colors.black,
+            offset: Offset(1, 1),
+          ),
+        ],
+      ),
+    ),
+    subtitle: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "${r.eventName} / ${r.round}回戦",
+          style: TextStyle(color: getTextColor(leftColor)),
+        ),
+        Text(
+          "${r.date.year}/${r.date.month}/${r.date.day} ・ ${r.format} ・ ${r.result}",
+          style: TextStyle(
+            fontSize: 12,
+            color: r.result == "勝" ? Colors.red : Colors.blue,
+          ),
+        ),
+      ],
+    ),
 
                   /// ===== 内容 =====
                   ListTile(

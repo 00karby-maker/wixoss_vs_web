@@ -109,54 +109,54 @@ class _InputPageState extends State<InputPage> {
 }
 
   void save() {
-    final box = Hive.box<MatchRecord>('records');
+  final box = Hive.box<MatchRecord>('records');
 
-    for (int i = 0; i < matches.length; i++) {
-      final m = matches[i];
+  for (int i = 0; i < matches.length; i++) {
+    final m = matches[i];
 
-      box.add(
-        MatchRecord(
-          eventName: eventCtrl.text,
-          date: date,
-          format: format,
-          usedLrig: usedLrig,
-          round: i + 1,
-          opponentLrig: m.opponentLrig,
-          firstSecond: m.firstSecond,
-          result: m.result,
-          selfLb: m.selfLb,
-          opponentLb: m.opponentLb,
-          memo: m.memoCtrl.text,
-          imagePath: imagePath, // URL保存
-        ),
-      );
-    }
-
-    if (usedLrig.isNotEmpty) {
-      final addCount = matches.length;
-      final newCount = (lrigCount[usedLrig] ?? 0) + addCount;
-
-      lrigCount[usedLrig] = newCount;
-      lrigBox.put(usedLrig, newCount);
-    }
-
-    setState(() {
-      eventCtrl.clear();
-      usedLrig = "";
-      imagePath = null;
-      date = DateTime.now();
-      format = "A";
-
-      for (var m in matches) {
-        m.dispose();
-      }
-      matches = [MatchInput()];
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("保存しました")),
+    box.add(
+      MatchRecord(
+        eventName: eventCtrl.text,
+        date: date,
+        format: format,
+        usedLrig: usedLrig,
+        round: i + 1,
+        opponentLrig: m.opponentLrig,
+        firstSecond: m.firstSecond,
+        result: m.result,
+        selfLb: m.selfLb,
+        opponentLb: m.opponentLb,
+        memo: m.memoCtrl.text,
+        imagePath: imagePath,
+      ),
     );
   }
+
+  // ★ 使用回数 Hive 保存は不要になったので削除
+  // if (usedLrig.isNotEmpty) {
+  //   final addCount = matches.length;
+  //   final newCount = (lrigCount[usedLrig] ?? 0) + addCount;
+  //   lrigCount[usedLrig] = newCount;
+  //   lrigBox.put(usedLrig, newCount);
+  // }
+
+  setState(() {
+    eventCtrl.clear();
+    usedLrig = "";
+    imagePath = null;
+    date = DateTime.now();
+    format = "A";
+
+    for (var m in matches) {
+      m.dispose();
+    }
+    matches = [MatchInput()];
+  });
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text("保存しました")),
+  );
+}
 
 String normalize(String input) {
     return input.split('').map((c) {

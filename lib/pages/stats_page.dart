@@ -13,6 +13,9 @@ class StatsPage extends StatefulWidget {
 class _StatsPageState extends State<StatsPage> {
   String format = "∀";
 
+  int? touchedUsedIndex; // 使用ルリググラフのタッチ状態
+  int? touchedOppIndex;  // 対戦ルリググラフのタッチ状態
+
   final List<String> lrigList = [
 // 白ルリグ
   "タマ","タウィル","サシェ","リメンバ","ドーナ",
@@ -173,14 +176,23 @@ final Map<String, Color> lrigColors = {
   }
 
   //円グラフ(使用率)
-Widget buildPieInteractive(String title, Map<String, int> data) {
+Widget buildPieInteractive(String title, Map<String, int> data,
+    {required bool isUsed}) {
   final total = data.values.fold<int>(0, (a, b) => a + b);
 
-  // 右上から％が高い順に並べ替え
   final sortedEntries = data.entries.toList()
     ..sort((a, b) => b.value.compareTo(a.value));
 
-  int? touchedIndex;
+  int? getTouchedIndex() => isUsed ? touchedUsedIndex : touchedOppIndex;
+  void setTouchedIndex(int? index) {
+    setState(() {
+      if (isUsed) {
+        touchedUsedIndex = index;
+      } else {
+        touchedOppIndex = index;
+      }
+    });
+  }
 
   return Card(
     margin: const EdgeInsets.only(bottom: 16),
@@ -189,8 +201,8 @@ Widget buildPieInteractive(String title, Map<String, int> data) {
       child: Column(
         children: [
           Text(title,
-              style: const TextStyle(
-                  fontSize: 18, fontWeight: FontWeight.bold)),
+              style:
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           SizedBox(
             height: 220,
@@ -207,32 +219,43 @@ Widget buildPieInteractive(String title, Map<String, int> data) {
                             final e = sortedEntries[i];
                             final percent =
                                 total == 0 ? 0.0 : (e.value / total * 100);
-                            final isTouched = i == touchedIndex;
+                            final isTouched = i == getTouchedIndex();
+
+                            // radius アニメーション風に変化
+                            final radius = isTouched ? 80.0 : 65.0;
+                            final color = isTouched
+                                ? lrigColor(e.key).withOpacity(0.8)
+                                : lrigColor(e.key);
+
                             return PieChartSectionData(
                               value: percent,
-                              color: lrigColor(e.key),
-                              radius: isTouched ? 75 : 65,
+                              color: color,
+                              radius: radius,
                               title: '',
+                              badgeWidget: null,
+                              badgePositionPercentageOffset: 0,
+                              showTitle: false,
                             );
                           }),
                           sectionsSpace: 2,
-                          startDegreeOffset: -90, // 右上からスタート
+                          startDegreeOffset: -90,
                           centerSpaceRadius: 0,
                           pieTouchData: PieTouchData(
                             touchCallback: (event, pieTouchResponse) {
-                              setLocalState(() {
-                                if (!event.isInterestedForInteractions ||
-                                    pieTouchResponse == null ||
-                                    pieTouchResponse.touchedSection == null) {
-                                  touchedIndex = null;
-                                  return;
-                                }
-                                touchedIndex = pieTouchResponse
-                                    .touchedSection!.touchedSectionIndex;
-                              });
+                              if (!event.isInterestedForInteractions ||
+                                  pieTouchResponse == null ||
+                                  pieTouchResponse.touchedSection == null) {
+                                setTouchedIndex(null);
+                                return;
+                              }
+                              setTouchedIndex(pieTouchResponse
+                                  .touchedSection!.touchedSectionIndex);
                             },
                           ),
                         ),
+                        swapAnimationDuration:
+                            const Duration(milliseconds: 300), // アニメーション追加
+                        swapAnimationCurve: Curves.easeOut,
                       );
                     },
                   ),
@@ -240,74 +263,64 @@ Widget buildPieInteractive(String title, Map<String, int> data) {
 
                 const SizedBox(width: 16),
 
-                // ラベル（スクロール対応）
+                // ラベル
                 Expanded(
                   flex: 1,
                   child: SingleChildScrollView(
-                    child: StatefulBuilder(
-                      builder: (context, setLocalState) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: List.generate(sortedEntries.length, (i) {
-                            final e = sortedEntries[i];
-                            final percent =
-                                total == 0 ? 0.0 : (e.value / total * 100);
-                            final isTouched = i == touchedIndex;
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: List.generate(sortedEntries.length, (i) {
+                        final e = sortedEntries[i];
+                        final percent =
+                            total == 0 ? 0.0 : (e.value / total * 100);
+                        final isTouched = i == getTouchedIndex();
 
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 2),
-                              child: MouseRegion(
-                                onEnter: (_) => setLocalState(() {
-                                  touchedIndex = i;
-                                }),
-                                onExit: (_) => setLocalState(() {
-                                  touchedIndex = null;
-                                }),
-                                child: GestureDetector(
-                                  onTap: () => setLocalState(() {
-                                    touchedIndex = i;
-                                  }),
-                                  child: Row(
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: MouseRegion(
+                            onEnter: (_) => setTouchedIndex(i),
+                            onExit: (_) => setTouchedIndex(null),
+                            child: GestureDetector(
+                              onTap: () => setTouchedIndex(i),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 16,
+                                    height: 16,
+                                    color: lrigColor(e.key),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Stack(
                                     children: [
-                                      Container(
-                                        width: 16,
-                                        height: 16,
-                                        color: lrigColor(e.key),
+                                      // 白枠
+                                      Text(
+                                        "${e.key} ${percent.toStringAsFixed(1)}%",
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          foreground: Paint()
+                                            ..style = PaintingStyle.stroke
+                                            ..strokeWidth = 2
+                                            ..color = Colors.white,
+                                        ),
                                       ),
-                                      const SizedBox(width: 6),
-                                      Stack(
-                                        children: [
-                                          // 白枠
-                                          Text(
-                                            "${e.key} ${percent.toStringAsFixed(1)}%",
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              foreground: Paint()
-                                                ..style = PaintingStyle.stroke
-                                                ..strokeWidth = 2
-                                                ..color = Colors.white,
-                                            ),
-                                          ),
-                                          // 内側文字色
-                                          Text(
-                                            "${e.key} ${percent.toStringAsFixed(1)}%",
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: isTouched
-                                                  ? Colors.red
-                                                  : Colors.black,
-                                            ),
-                                          ),
-                                        ],
+                                      // 内側文字色
+                                      Text(
+                                        "${e.key} ${percent.toStringAsFixed(1)}%",
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: isTouched
+                                              ? Colors.red
+                                              : Colors.black,
+                                        ),
                                       ),
                                     ],
                                   ),
-                                ),
+                                ],
                               ),
-                            );
-                          }),
+                            ),
+                          ),
                         );
-                      },
+                      }),
                     ),
                   ),
                 ),

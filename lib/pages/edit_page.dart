@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:typed_data';
-
+import 'dart:convert'; // ★追加
 import '../model/match_record.dart';
 
 class EditPage extends StatefulWidget {
@@ -100,18 +99,11 @@ class _EditPageState extends State<EditPage> {
   if (file == null) return;
 
   final bytes = await file.readAsBytes();
-  final name = DateTime.now().millisecondsSinceEpoch.toString();
 
-  final ref = FirebaseStorage.instance
-      .ref()
-      .child('images/$name.jpg');
-
-  await ref.putData(bytes);
-
-  final url = await ref.getDownloadURL();
+  final base64Str = base64Encode(bytes);
 
   setState(() {
-    imagePath = url;
+    imagePath = base64Str; // ★Base64保存
   });
 }
 
@@ -235,8 +227,10 @@ class _EditPageState extends State<EditPage> {
 
             if (imagePath != null)
               Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: Image.network(imagePath!, height: 120),
+    padding: const EdgeInsets.only(top: 10),
+    child: Image.memory(
+      base64Decode(imagePath!),
+      height: 120,
               ),
 
             const SizedBox(height: 20),

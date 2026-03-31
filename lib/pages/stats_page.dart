@@ -173,15 +173,14 @@ final Map<String, Color> lrigColors = {
   }
 
   //円グラフ
-// 円グラフ（インタラクティブ）
 Widget buildPieInteractive(String title, Map<String, int> data) {
   final total = data.values.fold<int>(0, (a, b) => a + b);
 
-  // 右上から％順に並べ替え
+  // 右上から％が高い順に並べ替え
   final sortedEntries = data.entries.toList()
     ..sort((a, b) => b.value.compareTo(a.value));
 
-  int? touchedIndex; // タップやホバーで強調するセクション
+  int? touchedIndex;
 
   return Card(
     margin: const EdgeInsets.only(bottom: 16),
@@ -193,9 +192,9 @@ Widget buildPieInteractive(String title, Map<String, int> data) {
               style: const TextStyle(
                   fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
-          SizedBox(
-            height: 220,
+          IntrinsicHeight(
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // 円グラフ
                 Expanded(
@@ -212,11 +211,8 @@ Widget buildPieInteractive(String title, Map<String, int> data) {
                             return PieChartSectionData(
                               value: percent,
                               color: lrigColor(e.key),
-                              radius: isTouched ? 75 : 65, // タップで拡大
-                              title: '', // ラベルは外に表示
-                              badgeWidget: null,
-                              badgePositionPercentageOffset: .98,
-                              titleStyle: const TextStyle(fontSize: 0),
+                              radius: isTouched ? 75 : 65,
+                              title: '',
                             );
                           }),
                           sectionsSpace: 2,
@@ -247,46 +243,48 @@ Widget buildPieInteractive(String title, Map<String, int> data) {
                 // ラベル
                 Expanded(
                   flex: 1,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: sortedEntries.map((e) {
-                      final percent = total == 0 ? 0.0 : (e.value / total * 100);
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 2),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 16,
-                              height: 16,
-                              color: lrigColor(e.key),
-                            ),
-                            const SizedBox(width: 6),
-                            // 白枠黒文字ラベル
-                            Stack(
-                              children: [
-                                Text(
-                                  "${e.key} ${percent.toStringAsFixed(1)}%",
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    foreground: Paint()
-                                      ..style = PaintingStyle.stroke
-                                      ..strokeWidth = 2
-                                      ..color = Colors.white,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: sortedEntries.map((e) {
+                        final percent =
+                            total == 0 ? 0.0 : (e.value / total * 100);
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 16,
+                                height: 16,
+                                color: lrigColor(e.key),
+                              ),
+                              const SizedBox(width: 6),
+                              Stack(
+                                children: [
+                                  Text(
+                                    "${e.key} ${percent.toStringAsFixed(1)}%",
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      foreground: Paint()
+                                        ..style = PaintingStyle.stroke
+                                        ..strokeWidth = 2
+                                        ..color = Colors.white,
+                                    ),
                                   ),
-                                ),
-                                Text(
-                                  "${e.key} ${percent.toStringAsFixed(1)}%",
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.black,
+                                  Text(
+                                    "${e.key} ${percent.toStringAsFixed(1)}%",
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.black,
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
                   ),
                 ),
               ],

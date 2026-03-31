@@ -8,7 +8,6 @@ import 'search_state.dart';
 
 /// ===== ルリグ色設定 =====
 class _StatsPageState extends State<StatsPage> {
-  String format = "∀";
 
   final List<String> lrigList = [
 // 白ルリグ
@@ -78,7 +77,7 @@ Color getTextColor(Color bgColor) {
   final brightness = ThemeData.estimateBrightnessForColor(bgColor);
   return brightness == Brightness.dark ? Colors.white : Colors.black;
 }
-
+}
 class HistoryPage extends StatelessWidget {
   const HistoryPage({super.key});
 

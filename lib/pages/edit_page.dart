@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'dart:typed_data';
-import 'dart:convert'; // ★追加
+import 'dart:convert';
 import '../model/match_record.dart';
 
 class EditPage extends StatefulWidget {
@@ -29,42 +29,38 @@ class _EditPageState extends State<EditPage> {
   String usedLrig = "";
   String opponentLrig = "";
 
-  late Box lrigBox;
-  final Map<String, int> lrigCount = {};
-
   final List<String> lrigList = [
-//白ルリグ
-  "タマ","タウィル","サシェ","リメンバ","ドーナ",
-  "アキノ","LION","ノヴァ","ゆかゆか","ガブリエラ",
-  "るう子","ゆきめ","エマ","にじさんじ","リゼ",
-  "アンジュ","アズサ","サオリ","ネージュ",
-//赤ルリグ
-  "花代","ユヅキ","赤タマ","ララ・ルー","リル",
-  "カーニバル","レイラ","LOV","ヒラナ","LOVIT",
-  "エクス","アザエラ","ちより","ジール",
-//青ルリグ
-  "ピルルク","エルドラ","ミルルン","ソウイ","あや",
-  "青リメンバ","青タマ","青ウムル","レイ","タマゴ",
-  "マドカ","みこみこ","ミカエラ","あきら","ネル",
-  "ミヤコ","リップル",
-//緑ルリグ
-  "緑子","アン","アイヤイ","メル","ママ",
-  "緑ユヅキ","緑ピルルク","アト","WOLF","バン",
-  "サンガ","緑カーニバル","ひとえ","ホシノ","シロコ",
-  "ユカリ","ミーティア",
-//黒ルリグ
-  "ウリス","イオナ","ウムル","ミュウ","ハナレ",
-  "アルフォウ","ナナシ","グズ子","黒カーニバル","ムジカ",
-  "デウス","マキナ","まほまほ","黒タマ","ヤミノ",
-  "ヒナ","シュン","とこ","ヴィオラ",
-//無色ルリグ
-  "夢限"
-];
+    // 白ルリグ
+    "タマ","タウィル","サシェ","リメンバ","ドーナ",
+    "アキノ","LION","ノヴァ","ゆかゆか","ガブリエラ",
+    "るう子","ゆきめ","エマ","にじさんじ","リゼ",
+    "アンジュ","アズサ","サオリ","ネージュ",
+    // 赤ルリグ
+    "花代","ユヅキ","赤タマ","ララ・ルー","リル",
+    "カーニバル","レイラ","LOV","ヒラナ","LOVIT",
+    "エクス","アザエラ","ちより","ジール",
+    // 青ルリグ
+    "ピルルク","エルドラ","ミルルン","ソウイ","あや",
+    "青リメンバ","青タマ","青ウムル","レイ","タマゴ",
+    "マドカ","みこみこ","ミカエラ","あきら","ネル",
+    "ミヤコ","リップル",
+    // 緑ルリグ
+    "緑子","アン","アイヤイ","メル","ママ",
+    "緑ユヅキ","緑ピルルク","アト","WOLF","バン",
+    "サンガ","緑カーニバル","ひとえ","ホシノ","シロコ",
+    "ユカリ","ミーティア",
+    // 黒ルリグ
+    "ウリス","イオナ","ウムル","ミュウ","ハナレ",
+    "アルフォウ","ナナシ","グズ子","黒カーニバル","ムジカ",
+    "デウス","マキナ","まほまほ","黒タマ","ヤミノ",
+    "ヒナ","シュン","とこ","ヴィオラ",
+    // 無色ルリグ
+    "夢限"
+  ];
 
   @override
   void initState() {
     super.initState();
-
     eventCtrl = TextEditingController(text: widget.record.eventName);
     memoCtrl = TextEditingController(text: widget.record.memo);
 
@@ -76,43 +72,26 @@ class _EditPageState extends State<EditPage> {
     round = widget.record.round;
     date = widget.record.date;
 
-    imagePath = widget.record.imagePath; // URL
+    imagePath = widget.record.imagePath;
     usedLrig = widget.record.usedLrig;
     opponentLrig = widget.record.opponentLrig;
-
-    initLrigBox();
   }
 
-  Future<void> initLrigBox() async {
-  lrigBox = await Hive.openBox('lrigUsage');
-  lrigCount.clear();
-  for (var key in lrigBox.keys) {
-    lrigCount[key] = lrigBox.get(key);
-  }
-  setState(() {});
-}
-
-  /// 🔥 Firebase対応画像アップロード
   Future<void> pickImage() async {
-  final picker = ImagePicker();
-    
-  final file = await picker.pickImage(
-    source: ImageSource.gallery,
-    maxWidth: 800,
-    maxHeight: 800,
-    imageQuality: 70,
-  );
-    
-  if (file == null) return;
+    final picker = ImagePicker();
+    final file = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 70,
+    );
+    if (file == null) return;
 
-  final bytes = await file.readAsBytes();
-
-  final base64Str = base64Encode(bytes);
-
-  setState(() {
-    imagePath = base64Str; // ★Base64保存
-  });
-}
+    final bytes = await file.readAsBytes();
+    setState(() {
+      imagePath = base64Encode(bytes);
+    });
+  }
 
   void save() {
     widget.record
@@ -134,14 +113,14 @@ class _EditPageState extends State<EditPage> {
   }
 
   String normalize(String input) {
-  return input.split('').map((c) {
-    final code = c.codeUnitAt(0);
-    if (code >= 0x3041 && code <= 0x3096) {
-      return String.fromCharCode(code + 0x60);
-    }
-    return c;
-  }).join();
-}
+    return input.split('').map((c) {
+      final code = c.codeUnitAt(0);
+      if (code >= 0x3041 && code <= 0x3096) {
+        return String.fromCharCode(code + 0x60);
+      }
+      return c;
+    }).join();
+  }
 
   Widget label(String t) => Padding(
         padding: const EdgeInsets.only(top: 10),
@@ -152,102 +131,101 @@ class _EditPageState extends State<EditPage> {
       );
 
   Future<String?> selectLrig(BuildContext context) async {
-  String search = "";
+    String search = "";
 
-  return showDialog<String>(
-    context: context,
-    builder: (context) {
-      return StatefulBuilder(
-        builder: (context, setState) {
+    return showDialog<String>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return ValueListenableBuilder(
+              valueListenable: Hive.box<MatchRecord>('records').listenable(),
+              builder: (context, _, __) {
+                // Box更新時に使用回数を計算
+                final lrigCount = <String, int>{};
+                for (var r in Hive.box<MatchRecord>('records').values) {
+                  if (r.usedLrig.isEmpty) continue;
+                  lrigCount[r.usedLrig] = (lrigCount[r.usedLrig] ?? 0) + 1;
+                }
 
-          final normalizedSearch = normalize(search);
+                final normalizedSearch = normalize(search);
+                final frequent = lrigList
+                    .where((e) => (lrigCount[e] ?? 0) > 0)
+                    .toList()
+                  ..sort((a, b) =>
+                      (lrigCount[b] ?? 0).compareTo(lrigCount[a] ?? 0));
 
-          // よく使うルリグ
-          final frequent = lrigList
-              .where((e) => (lrigCount[e] ?? 0) > 0)
-              .toList()
-            ..sort((a, b) =>
-                (lrigCount[b] ?? 0).compareTo(lrigCount[a] ?? 0));
+                final others = lrigList
+                    .where((e) => (lrigCount[e] ?? 0) == 0)
+                    .toList();
 
-          // 未使用
-          final others = lrigList
-              .where((e) => (lrigCount[e] ?? 0) == 0)
-              .toList();
+                final merged = [...frequent, ...others];
+                final filtered = merged
+                    .where((e) => normalize(e).contains(normalizedSearch))
+                    .toList();
 
-          final merged = [...frequent, ...others];
+                final mostUsed = frequent.isNotEmpty ? frequent.first : "";
 
-          final filtered = merged.where((e) {
-            return normalize(e).contains(normalizedSearch);
-          }).toList();
-
-          final mostUsed = frequent.isNotEmpty ? frequent.first : "";
-
-          return AlertDialog(
-            title: const Text("ルリグ選択"),
-            content: SizedBox(
-              width: double.maxFinite,
-              height: 350,
-              child: Column(
-                children: [
-                  TextField(
-                    decoration: const InputDecoration(
-                      hintText: "検索（ひらがなOK）",
-                      prefixIcon: Icon(Icons.search),
-                    ),
-                    onChanged: (v) {
-                      setState(() {
-                        search = v;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 10),
-
-                  if (search.isEmpty && mostUsed.isNotEmpty) ...[
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        "よく使うルリグ",
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    ListTile(
-                      tileColor: Colors.amber.withOpacity(0.3),
-                      title: Text(mostUsed),
-                      trailing: Text("★${lrigCount[mostUsed]}"),
-                      onTap: () {
-                        Navigator.pop(context, mostUsed);
-                      },
-                    ),
-                    const Divider(),
-                  ],
-
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: filtered.length,
-                      itemBuilder: (context, index) {
-                        final item = filtered[index];
-                        return ListTile(
-                          title: Text(item),
-                          trailing: (lrigCount[item] ?? 0) > 0
-                              ? Text("★${lrigCount[item]}")
-                              : null,
-                          onTap: () {
-                            Navigator.pop(context, item);
+                return AlertDialog(
+                  title: const Text("ルリグ選択"),
+                  content: SizedBox(
+                    width: double.maxFinite,
+                    height: 350,
+                    child: Column(
+                      children: [
+                        TextField(
+                          decoration: const InputDecoration(
+                            hintText: "検索（ひらがなOK）",
+                            prefixIcon: Icon(Icons.search),
+                          ),
+                          onChanged: (v) {
+                            setState(() => search = v);
                           },
-                        );
-                      },
+                        ),
+                        const SizedBox(height: 10),
+                        if (search.isEmpty && mostUsed.isNotEmpty) ...[
+                          const Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              "よく使うルリグ",
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          ListTile(
+                            tileColor: Colors.amber.withOpacity(0.3),
+                            title: Text(mostUsed),
+                            trailing: Text("★${lrigCount[mostUsed]}"),
+                            onTap: () => Navigator.pop(context, mostUsed),
+                          ),
+                          const Divider(),
+                        ],
+                        Expanded(
+                          child: ListView.builder(
+                            itemCount: filtered.length,
+                            itemBuilder: (context, index) {
+                              final item = filtered[index];
+                              return ListTile(
+                                title: Text(item),
+                                trailing: (lrigCount[item] ?? 0) > 0
+                                    ? Text("★${lrigCount[item]}")
+                                    : null,
+                                onTap: () => Navigator.pop(context, item),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
-    },
-  );
-}
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
 
   @override
   void dispose() {
@@ -311,20 +289,18 @@ class _EditPageState extends State<EditPage> {
 
             const SizedBox(height: 10),
 
-            /// 🔥 画像
             ElevatedButton(
               onPressed: pickImage,
               child: const Text("デッキレシピ"),
             ),
-
             if (imagePath != null)
               Padding(
-    padding: const EdgeInsets.only(top: 10),
-    child: Image.memory(
-      base64Decode(imagePath!),
-      height: 120,
+                padding: const EdgeInsets.only(top: 10),
+                child: Image.memory(
+                  base64Decode(imagePath!),
+                  height: 120,
+                ),
               ),
-            ),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: save,

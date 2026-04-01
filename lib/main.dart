@@ -8,6 +8,7 @@ import 'pages/history_search_page.dart';
 import 'pages/history_page.dart';
 import 'pages/stats_page.dart';
 import 'pages/search_state.dart';
+import 'pages/help_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -72,7 +73,7 @@ class MainPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Scaffold(
         appBar: AppBar(
           title: const Text("WIXOSS対戦記録"),
@@ -82,6 +83,7 @@ class MainPage extends StatelessWidget {
               Tab(text: "検索"), 
               Tab(text: "履歴"),
               Tab(text: "統計"),
+              Tab(text: "用法"),
             ],
           ),
         ),
@@ -91,6 +93,7 @@ class MainPage extends StatelessWidget {
             HistorySearchPage(),
             HistoryPage(),
             StatsPage(),
+            HelpPage(),
           ],
         ),
       ),

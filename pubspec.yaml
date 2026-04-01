@@ -27,6 +27,27 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  assets:
+    - assets/help/input_1.png
+    - assets/help/input_2.png
+    - assets/help/input_3.png
+    - assets/help/input_4.png
+    - assets/help/search_1.png
+    - assets/help/search_2.png
+    - assets/help/search_3.png
+    - assets/help/search_4.png
+    - assets/help/edit_1.png
+    - assets/help/edit_2.png
+    - assets/help/history_1.png
+    - assets/help/history_2.png
+    - assets/help/history_3.png
+    - assets/help/stats_1.png
+    - assets/help/stats_2.png
+    - assets/help/stats_3.png
+    - assets/help/stats_4.png
+    - assets/help/stats_5.png
+    - assets/help/stats_6.png
+
 flutter_launcher_icons:
   android: true
   ios: true
